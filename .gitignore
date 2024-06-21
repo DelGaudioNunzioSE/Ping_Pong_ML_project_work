@@ -1,0 +1,4 @@
+# Default ignored
+.idea/
+__pycache__/
+saved_models/
