@@ -24,20 +24,12 @@ class BaseActionSpace:
         return low + (high - low) * (action + 1) / 2
 
 
-class ActionSpaceCart(BaseActionSpace):
-    JOINT_RANGES = [
-        (-0.3, 0.3),  # Joint 0: Translation y
-        (-0.8, 0.8),  # Joint 1: Translation x
-    ]
-
-    def __init__(self):
-        super().__init__(self.JOINT_RANGES)
-
-
 class ActionSpaceArm(BaseActionSpace):
     JOINT_RANGES = [
-        (0, np.pi * 2/5),  # Joint 3: Pitch primo
-        (-3 * np.pi / 4, 3 * np.pi / 4),    # Joint 5: Pitch secondo
+        (-0.3, 0.3),  # Joint 0: Translation y
+        (-np.pi * 1/10, 1.4),  # Joint 3: Pitch primo
+        (-1.6, 1.6),  # Joint 5: Pitch secondo
+        (-np.pi*3/4, np.pi*3/4),  # Joint 7: Pitch terzo
     ]
 
     def __init__(self):
@@ -46,7 +38,6 @@ class ActionSpaceArm(BaseActionSpace):
 
 class ActionSpacePaddle(BaseActionSpace):
     JOINT_RANGES = [
-        (-3 * np.pi / 4, 3 * np.pi / 4),  # Joint 7: Pitch terzo
         (-3 * np.pi / 4, 3 * np.pi / 4),    # Joint 9: Pitch
         (-np.pi, np.pi)                     # Joint 10: Roll
     ]
