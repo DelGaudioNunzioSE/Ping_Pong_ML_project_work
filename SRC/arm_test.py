@@ -8,12 +8,13 @@ from utilities.ddpg import DDPG
 from server import get_neutral_joint_position
 import numpy as np
 import math
+from utilities.arm_net import ArmModel
 
 GAMMA = 0.99
 TAU = 0.01
-HIDDEN_SIZE_ARM = (400, 300)
+HIDDEN_SIZE_ARM = (400, 300, 200)
 ACTION_SPACE_ARM = ActionSpaceArm()
-INPUT_SPACE_ARM = 8
+NUM_INPUTS = 2
 
 # Create logger
 logger = logging.getLogger('train')
@@ -23,16 +24,11 @@ logger.setLevel(logging.INFO)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info("Using {}".format(device))
 
-arm_agent = DDPG(GAMMA,
-                 TAU,
-                 HIDDEN_SIZE_ARM,
-                 INPUT_SPACE_ARM,
-                 ACTION_SPACE_ARM
-                 )
+arm_net_model = ArmModel(HIDDEN_SIZE_ARM, NUM_INPUTS, ACTION_SPACE_ARM).to(device)
 
-arm_agent.load_checkpoint()
+arm_net_model.load_state_dict(torch.load('saved_model.pth'))
 
-arm_agent.set_eval()
+arm_net_model.eval()
 
 
 def run(cli):
@@ -40,20 +36,21 @@ def run(cli):
     action = get_neutral_joint_position()
     action[9] = 0
     out = False
+    z = 0
     while True:
         state = cli.get_state()
 
         # Game finished
         if not prev_state[28] and state[28]:
             action = get_neutral_joint_position()
-            action[7] = math.pi * 1 / 2
-            action[9] = -math.pi * 3 / 4
+            action[9] = 0
+
             out = False
 
         if state[21] < 0 and state[28] and not out and state[19] > 0:
-            x, y = trajectory(state)
+            x, y = trajectory(state, z)
             if x is not None and y is not None:
-                if (prev_state[21] * state[21]) < 0 and ((x < -0.8 or x > 0.8) or (y < -0.1 or y > 1.3)):
+                if (prev_state[21] * state[21]) < 0 and ((x < -0.8 or x > 0.8) or (y < -0.2 or y > 1.3)):
                     print("va fuori")
                     action = get_neutral_joint_position()
                     out = True
@@ -62,28 +59,28 @@ def run(cli):
                     else:
                         x = -0.8
                 else:
-                    y += 0.35
-                    y = max(-0.3, min(y, 0.3))
+                    # y += 0.35
+                    # y = max(-0.3, min(y, 0.3))
+                    # y = 0.3
                     x = max(-0.8, min(x, 0.8))
 
-                action[0] = y
+                # action[0] = y
                 action[1] = x
 
-            input_state = np.zeros(INPUT_SPACE_ARM)
-            input_state[0] = state[3]
-            input_state[1] = state[5]
-            input_state[2] = state[11]
-            input_state[3] = state[12]
-            input_state[4] = state[13]
-            input_state[5] = state[17]
-            input_state[6] = state[18]
-            input_state[7] = state[19]
+            input_state = np.zeros(NUM_INPUTS)
+            # input_state[0] = state[18]
+            # input_state[1] = state[19]
+
+            input_state[0] = y
+            input_state[1] = z + 0.1
 
             input_state = torch.Tensor(input_state)
 
-            arm_action = arm_agent.calc_action(input_state)
-            action[3] = arm_action[0]
-            action[5] = arm_action[1]
+            arm_action = arm_net_model(input_state)
+            action[0] = arm_action[0]
+            action[3] = arm_action[1]
+            action[5] = arm_action[2]
+            action[7] = arm_action[3]
 
         cli.send_joints(action)
 
