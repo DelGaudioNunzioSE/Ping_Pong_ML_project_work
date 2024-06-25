@@ -6,10 +6,11 @@ import select
 import struct
 from abc import ABC, abstractmethod
 
+#These parameters and constants are critical for managing the behavior of message transmission, reception, and handling within a communication system, ensuring efficient and reliable data exchange.
 MESSAGE_NORMAL = 128
 MAX_MESSAGE_LENGTH=65535-MESSAGE_NORMAL
-MESSAGE_PING   = 1
-MESSAGE_REFUSED = 2
+MESSAGE_PING   = 1 #This defines the value used for a ping message, typically for checking connectivity.
+MESSAGE_REFUSED = 2 #This sets the value indicating that a message was refused.
 MESSAGE_HEADER_SIZE=2
 MAX_OUTBOUND_QUEUE = 15
 MIN_OUTBOUND_BUFFER = 4096
@@ -17,10 +18,11 @@ RECV_SIZE=MAX_MESSAGE_LENGTH+MESSAGE_HEADER_SIZE
 WAIT_TIME=0.2
 PING_TIME=2.0
 
-
+#A custom exception class that inherits from IOError. It is used to handle errors specific to channel operations.
 class ChannelError(IOError):
     pass
 
+#An abstract base class (ABC) for a communication channel. It defines the essential methods that any concrete implementation of a channel must provide.
 class AbstractChannel(ABC):
     @abstractmethod
     def send(self, message):
