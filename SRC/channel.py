@@ -59,26 +59,32 @@ class AbstractChannel(ABC):
 
 class BaseChannel(AbstractChannel):
     def __init__(self):
-        self.lock = threading.RLock()
-        self.sock = None
-        self.inbound_queue = queue.SimpleQueue()
-        self.outbound_queue = queue.SimpleQueue()
-        self.inbound_buffer = b''
-        self.outbound_buffer = b''
+        self.lock = threading.RLock() #RLock is used for concurrency management.
+        self.sock = None #socket at first is none
+        self.inbound_queue = queue.SimpleQueue() #queques for incoming messages
+        self.outbound_queue = queue.SimpleQueue() #queques for outcoming messages
+        self.inbound_buffer = b'' #buffer for input data.
+        self.outbound_buffer = b'' #buffer for output data.
         self.closed = False
         self.last_write_time = time.time()
         self.last_read_time = time.time()
+        
+        #Various flags to track channel status.
         self.found_error=False
         self.refused = False
         self.reader_finished = False
         self.writer_finished = False
+
+        #Starts two threads: one for reading (reader_thread) and one for writing (writer_thread).
         t1=threading.Thread(target=self.reader_thread)
         t1.start()
         t2=threading.Thread(target=self.writer_thread)
         t2.start()
 
+   
+    #If another thread tries to acquire the lock while it has already been acquired, it will have to wait until the lock is released.
     def set_socket(self, sock):
-        with self.lock:
+        with self.lock:  #Critical Code Protection: Using with self.lock ensures that the code within the lock is executed atomically, preventing race conditions. 
             try:
                 if self.sock:
                     self.sock.close()
@@ -87,47 +93,60 @@ class BaseChannel(AbstractChannel):
             self.inbound_buffer = b''
             self.outbound_buffer = b''
 
+    #Sends a message by adding it to the outbound queue, ensuring it does not exceed the maximum length or queue size.
     def send(self, message):
-        with self.lock:
-            if self.closed:
+        with self.lock: #The function begins by acquiring the lock to ensure that access to the code within the with self.lock block is thread-safe.
+            if self.closed: #If the channel is closed (self.closed is True), the function returns immediately without doing anything.
                 return
             if self.refused:
-                raise ChannelError('Send to a connection refused by peer')
-        if len(message)>MAX_MESSAGE_LENGTH:
+                raise ChannelError('Send to a connection refused by peer') #If the channel has been rejected by the peer (self.refused is True), a ChannelError exception is raised with an appropriate message.
+        if len(message)>MAX_MESSAGE_LENGTH: #Message Length Control: If the message to be sent is longer than MAX_MESSAGE_LENGTH, a ChannelError exception is raised indicating that the message is too long.
                 raise ChannelError('Message too long in send')
         try:
-            while self.outbound_queue.qsize()>MAX_OUTBOUND_QUEUE:
-                self.outbound_queue.get(block=False)
+            #function checks the size of the outbound message queue (self.outbound_queue). If the queue is larger than MAX_OUTBOUND_QUEUE, removes older messages to make room for new messages.
+            while self.outbound_queue.qsize()>MAX_OUTBOUND_QUEUE: 
+                self.outbound_queue.get(block=False) #The removal occurs in a non-blocking manner (block=False), which means that if the queue is empty, a queue.Empty exception is raised, which is caught and handled safely with pass.
         except queue.Empty:
-            pass
+            pass #null instruction, used to represent an empty block of code.
         self.outbound_queue.put(message)
 
+    #sends a refusal message by adding it to the outbound buffer.
     def send_refuse(self):
-        m=struct.pack('!H', MESSAGE_REFUSED)
-        with self.lock:
-            self.outbound_buffer += m
+        m=struct.pack('!H', MESSAGE_REFUSED) #Use the struct library to create a binary message. !H specifies that the data should be packed as an unsigned short in network byte order (big-endian).
+        with self.lock: #Acquires the lock to ensure that the operation of modifying the output buffer (self.outbound_buffer) is thread safe.
+            self.outbound_buffer += m 
             
 
+    #Receives a message from the inbound queue, optionally with a timeout.
     def receive(self, timeout=None):
         with self.lock:
             if self.refused:
                 raise ChannelError('Receive from a connection refused by peer')
             if self.closed:
                 return None
+
+        #The timeout parameter is used to determine how long the thread must wait to receive a message from the queue (inbound_queue) before continuing. 
+        #The timeout is important to prevent the thread from being blocked indefinitely waiting for a message, instead allowing you to handle situations where messages may not arrive within a reasonable time.
         try:
+            #No Timeout Specified (Non-Blocking): attempts to get a message from the queue in a non-blocking manner. If the queue is empty, it raises a queue.Empty exception which is handled in the except block.
             if not timeout:
                 return self.inbound_queue.get(block=False)
+
+            #Timeout Specified and Greater than or Equal to Zero (Timeout Blocking): If a message arrives within the specified time, it is returned; otherwise, if the time expires, a queue.Empty exception is raised
             elif timeout>=0.0:
                 return self.inbound_queue.get(timeout=timeout)
             else:
+                #Timeout Less Than Zero (Blocking Without Timeout): the thread will wait indefinitely until a message becomes available in the queue.
                 return self.inbound_queue.get()
         except queue.Empty:
             return None
 
+    #Closes the channel.
     def close(self):
         with self.lock:
             self.closed=True
 
+    #These methods check the status of the channel, such as if it's closed, refused, finished, or retrieve the last activity time.
     def is_closed(self):
         with self.lock:
             return self.closed
@@ -140,33 +159,35 @@ class BaseChannel(AbstractChannel):
         with self.lock:
             return self.reader_finished and self.writer_finished 
 
+    #returns the last time read or write activity occurred on the socket. It is useful for monitoring channel activity and detecting periods of inactivity.
     def last_activity_time(self):
         with self.lock:
             return max(self.last_read_time, self.last_write_time)
 
+    #The reader thread (reader_thread) is responsible for reading data from the socket as it becomes available. It runs in a continuous loop until the channel is closed.
     def reader_thread(self):
         while not self.is_closed():
             fd=None
             with self.lock:
                 if self.sock:
-                    fd=self.sock.fileno()
-            if fd is None:
+                    fd=self.sock.fileno() #Gets the socket descriptor (fd) file, if it exists.
+            if fd is None: #If fd is None, the thread waits for a short time (WAIT_TIME) and then starts the loop again.
                 time.sleep(WAIT_TIME)
                 continue
-            rready, _, xready=select.select([fd],[],[fd],WAIT_TIME)
-            with self.lock:
+            rready, _, xready=select.select([fd],[],[fd],WAIT_TIME) #Use select to monitor the socket file descriptor for read (rready) and errors (xready), with a timeout of WAIT_TIME.
+            with self.lock: #Reacquires the lock to ensure that the socket has not been modified by other threads.
                 if not self.sock or fd!=self.sock.fileno():
                     continue
-                if xready:
-                    self.found_error=True
-                if rready and not self.found_error:
+                if xready: #Checks for errors (xready) and handles them by setting self.found_error to True.
+                    self.found_error=True 
+                if rready and not self.found_error: #If there is data to read (rready) and there are no errors, call do_read to read the data from the socket.
                     self.do_read()
             self.check_error()
             # End of while
         with self.lock:
-            self.reader_finished=True
+            self.reader_finished=True #read thread has finished its execution.
             try:
-                if self.writer_finished and self.sock:
+                if self.writer_finished and self.sock: #If the writing thread has finished and the socket (self.sock) exists, close the socket by calling self.sock.close().
                     self.sock.close()
             except IOError:
                 pass
@@ -201,35 +222,40 @@ class BaseChannel(AbstractChannel):
 
 
 
+    #Prepares data to be written to the socket, ensuring the buffer meets the minimum size requirement and handling ping messages. 
+    #It ensures that the output buffer is adequately filled before the write attempt and sends periodic pings to keep the connection alive. 
+    #It uses thread-safe code blocks to ensure that operations on shared variables are performed without interference between concurrent threads.
     def prepare_write(self):
         with self.lock:
             bl=len(self.outbound_buffer)
-        while bl<MIN_OUTBOUND_BUFFER:
+        while bl<MIN_OUTBOUND_BUFFER: #Continue to fill the output buffer until its length is less than MIN_OUTBOUND_BUFFER.
             try:
                 if bl==0:
-                    m=self.outbound_queue.get(timeout=PING_TIME)
+                    m=self.outbound_queue.get(timeout=PING_TIME) #attempts to get a message from the outbound queue (self.outbound_queue) with a timeout of PING_TIME
                 else:
-                    m=self.outbound_queue.get(block=False)
+                    m=self.outbound_queue.get(block=False) #attempts to get a message from the output queue in a non-blocking manner (block=False)
             except queue.Empty:
                 break
-            em=self.encode_message(m)
+            em=self.encode_message(m) #obtaining encoded message
             with self.lock:
                 self.outbound_buffer += em
                 bl=len(self.outbound_buffer)
         if bl==0:
-            ping=struct.pack('!H', MESSAGE_PING)
+            ping=struct.pack('!H', MESSAGE_PING) #If after the fill cycle the output buffer is still empty (bl == 0), a ping message is created.
             with self.lock:
                 self.outbound_buffer+=ping
 
+    #Encodes messages with a header indicating their length and type.
     def encode_message(self, message):
         n=len(message)
         if n>MAX_MESSAGE_LENGTH:
             print('*** Warning: Attempted sending a message too long!')
             return ''
-        h=struct.pack('!H', MESSAGE_NORMAL+n)
+        h=struct.pack('!H', MESSAGE_NORMAL+n) #create a binary header. !H indicates an unsigned short integer in network byte order (big-endian).
         return h+message
 
 
+    #Writes data from the outbound buffer to the socket.
     def do_write(self):
         if self.outbound_buffer:
             try:
@@ -242,6 +268,7 @@ class BaseChannel(AbstractChannel):
                 self.outbound_buffer = self.outbound_buffer[n:]
                 self.last_write_time=time.time()
 
+    #Reads data from the socket into the inbound buffer.
     def do_read(self):
         data=b''
         try:
@@ -255,6 +282,7 @@ class BaseChannel(AbstractChannel):
         else:
             self.found_error=True
 
+    #Checks for errors and handles closing the socket if necessary.
     def check_error(self):
         with self.lock:
             if self.found_error:
@@ -266,12 +294,15 @@ class BaseChannel(AbstractChannel):
                 self.on_error()
 
 
+    #Placeholder method for handling errors, intended to be overridden by subclasses.
     def on_error(self):
         pass
 
+    #Posts a message to the inbound queue.
     def post_message(self, message):
         self.inbound_queue.put(message)
 
+    #Parses incoming messages from the inbound buffer and handles them according to their type.
     def parse_messages(self):
         while True:
             blen=len(self.inbound_buffer)
