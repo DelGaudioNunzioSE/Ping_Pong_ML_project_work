@@ -46,7 +46,7 @@ memory = ReplayMemory(REPLAY_SIZE)
 def run(cli):
     model_number = 0
     hard = 0
-    noise_stddev = 1
+    noise_stddev = 0.4
 
     # Initialize OU-Noise for the exploration
     ou_noise_arm = OrnsteinUhlenbeckActionNoise(mu=np.zeros(ACTION_SPACE_ARM.shape),

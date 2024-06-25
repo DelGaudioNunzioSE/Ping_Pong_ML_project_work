@@ -16,7 +16,6 @@ logger.addHandler(logging.StreamHandler())
 # Set the device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 # Soft update function to update the target networks' parameters
 def soft_update(target, source, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):

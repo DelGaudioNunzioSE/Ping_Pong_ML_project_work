@@ -1,0 +1,27 @@
+Raggio racchetta = 0.15
+Lunghezza manico racchetta = 0.19
+Joint del manico della raccheta = simile al manico
+TABLE_LENGTH=2.4
+TABLE_WIDTH=1.4
+meta campo avversaria (x = 1.3 - 2.3) (y = -0.6 - 0.6)
+
+massimo allungo racchetta = 0.66 y
+                            -0.05 +0.35 = 0.2
+racchetta ad y carrello = -0.75 y
+
+
+Input per la rete del braccio
+3 - pitch primo
+5 - pitch secondo
+11-13   - pad center position (x,y,z)
+17-19   - Current ball position (x,y,z)
+
+
+Input per la rete della racchetta
+7       - inclinazione terzo
+9       - inclinazione paddle
+10      - rotazione paddle
+11-13   - pad center position (x,y,z)
+14-16   - pad normal versor (x,y,z)
+17-19   - Current ball position (x,y,z)
+20-22   - Current ball velocity (x,y,z)

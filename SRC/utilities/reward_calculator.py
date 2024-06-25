@@ -1,8 +1,37 @@
 import numpy as np
+from utilities.trajectory import trajectory
 
 
-def calculate_paddle_reward(prev_state, next_state):
-    print("ciao")
+def calculate_paddle_reward(prev_state, state, done):
+
+    paddle_pos = np.array(state[11:14])
+    ball_pos = np.array(state[17:20])
+
+    distance = np.linalg.norm(paddle_pos - ball_pos)
+
+    if done:
+        if prev_state[21] * state[21] < 0:
+            x, y = trajectory(state, 0.03)
+            if x is not None and y is not None:
+                if -0.6 < x < 0.6 and 1.25 < y < 2.4:
+
+                    x = abs(x)
+
+                    reward = (x * 20) + 10
+
+                else:
+                    reward = 0
+            else:
+                reward = 0
+        elif distance > 0.3:
+            reward = -10
+        else:
+            reward = 0
+    else:
+        reward = 0
+
+    return reward
+
 
 def calculate_arm_reward(prev_state, next_state):
     # Extract paddle and ball positions from the states

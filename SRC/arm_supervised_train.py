@@ -12,15 +12,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 NUM_EPOCHS = 1000
 early_stopping = EarlyStopping()
-HIDDEN_SIZE = (400, 300, 200)
+HIDDEN_SIZE = (100, 50)
 NUM_INPUTS = 2
 action_space_arm = ActionSpaceArm()
-arm_net_model = ArmModel(HIDDEN_SIZE, NUM_INPUTS, action_space_arm).to(device)
-optimizer = Adam(arm_net_model.parameters(), lr=0.001)
-dataset = ArmDataset('dataset_file.csv')
+arm_model = ArmModel(HIDDEN_SIZE, NUM_INPUTS, action_space_arm).to(device)
+optimizer = Adam(arm_model.parameters(), lr=0.001)
+dataset = ArmDataset('dataset_file_2.csv')
 lossFunction = nn.MSELoss()
 
-with open("arm_learning_report.csv", mode='w', newline='') as file:
+with open("arm_learning_report_100_200_50_001_dataset_bello.csv", mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow([
         'epoch', 'training_loss', 'val_loss'
@@ -28,25 +28,25 @@ with open("arm_learning_report.csv", mode='w', newline='') as file:
 
 final_epoch = 0
 for epoch in range(NUM_EPOCHS):
-    arm_net_model.train()
+    arm_model.train()
     training_loss = 0.0
 
     for input_train_batch, target_train_batch in dataset.train_loader:
         input_train_batch, target_train_batch = input_train_batch.to(device), target_train_batch.to(device)
         optimizer.zero_grad()
-        joints = arm_net_model(input_train_batch)
+        joints = arm_model(input_train_batch)
         loss = lossFunction(joints, target_train_batch)
         loss.backward()
         optimizer.step()
         training_loss += loss.item() * input_train_batch.size(0)
 
-    arm_net_model.eval()
+    arm_model.eval()
     val_loss = 0.0
 
     with torch.no_grad():
         for input_val_batch, target_val_batch in dataset.val_loader:
             input_val_batch, target_val_batch = input_val_batch.to(device), target_val_batch.to(device)
-            joints = arm_net_model(input_val_batch)
+            joints = arm_model(input_val_batch)
             loss = lossFunction(joints, target_val_batch)
             val_loss += loss.item() * input_val_batch.size(0)
 
@@ -58,13 +58,14 @@ for epoch in range(NUM_EPOCHS):
     with open("arm_learning_report.csv", 'a') as file:
         file.write(str(epoch) + ',' + str(training_loss) + ',' + str(val_loss) + '\n')
 
-    early_stopping(val_loss, arm_net_model)
+    early_stopping(val_loss, arm_model)
 
     if early_stopping.early_stop:
         final_epoch = epoch
         print('Early stopping triggered')
         break
 
-torch.save(arm_net_model.state_dict(), 'saved_model.pth')
-#arm_net_model.save_checkpoint(final_epoch, 'arm_model_net')
+arm_model.save_checkpoint(final_epoch, 'arm_model_dataset_bello')
+# torch.save(arm_model.state_dict(), 'saved_model.pth')
+# arm_net_model.save_checkpoint(final_epoch, 'arm_model_net')
 print('Training finished.')

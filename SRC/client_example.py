@@ -2,12 +2,16 @@ import torch
 import time
 from client import Client, JOINTS, DEFAULT_PORT
 import sys
-from utilities.action_space import ActionSpaceCart, ActionSpaceArm, ActionSpacePaddle
+from utilities.action_space import ActionSpaceArm  # , ActionSpacePaddle
 from utilities.ddpg import DDPG
 from server import AutoPlayerInterface, get_neutral_joint_position
 from utilities.noise import OrnsteinUhlenbeckActionNoise
 import numpy as np
 import math
+from utilities.arm_net import ArmModel
+
+# Set the device to GPU if available, otherwise use CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def traiettoria(state, target_z=0.1):
     bx, by, bz = state[17:20]
@@ -50,11 +54,15 @@ hidden_size_cart = (76, 38)
 hidden_size_arm = (152, 76)
 hidden_size_paddle = (152, 76)
 # action_space_cart = ActionSpaceCart()
-action_space_paddle = ActionSpacePaddle()
-action_space_arm = ActionSpaceArm()
+# action_space_paddle = ActionSpacePaddle()
+# action_space_arm = ActionSpaceArm()
 auto = AutoPlayerInterface()
 noise_stddev = 0.2
 input_space_arm = 8
+
+HIDDEN_SIZE_ARM = (100, 50)
+ACTION_SPACE_ARM = ActionSpaceArm()
+NUM_INPUTS = 2
 
 """
 cart_agent = DDPG(gamma,
@@ -71,13 +79,19 @@ cart_agent = DDPG(gamma,
 #ou_noise_cart = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions_cart),
 #                                        sigma=float(noise_stddev) * np.ones(nb_actions_cart))
 
-nb_actions_arm = action_space_arm.shape
-ou_noise_arm = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions_arm),
-                                        sigma=float(noise_stddev) * np.ones(nb_actions_arm))
+# nb_actions_arm = action_space_arm.shape
+# ou_noise_arm = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions_arm),
+#                                         sigma=float(noise_stddev) * np.ones(nb_actions_arm))
+#
+# nb_actions_paddle = action_space_paddle.shape
+# ou_noise_paddle = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions_paddle),
+#                                                sigma=float(noise_stddev) * np.ones(nb_actions_paddle))
 
-nb_actions_paddle = action_space_paddle.shape
-ou_noise_paddle = OrnsteinUhlenbeckActionNoise(mu=np.zeros(nb_actions_paddle),
-                                               sigma=float(noise_stddev) * np.ones(nb_actions_paddle))
+arm_model = ArmModel(HIDDEN_SIZE_ARM, NUM_INPUTS, ACTION_SPACE_ARM).to(device)
+
+arm_model.load_checkpoint()
+
+arm_model.eval()
 
 
 def run(cli):
@@ -114,14 +128,47 @@ def run(cli):
 
         # Game finished
         if not prev_state[28] and state[28]:
+            # action = np.zeros(JOINTS)
             action = get_neutral_joint_position()
-            action[7] = math.pi*1/2
-            action[9] = -math.pi*3/4
+            # action[2] = math.pi
+            # action[3] = math.pi / 3
+            # action[7] = math.pi*1/2
+            # action[9] = math.pi*3/4
             out = False
 
         if state[21] < 0 and state[28] and not out and state[19] > 0:
             x, y = traiettoria(state)
             if x is not None and y is not None:
+                if (prev_state[21] * state[21]) < 0 or prev_state[21] == 0:
+
+                    """da sotto"""
+                    input_state = np.zeros(NUM_INPUTS)
+                    input_state[0] = y + 0.3
+                    input_state[1] = 0.5
+
+                    input_state = torch.Tensor(input_state)
+
+                    arm_action = arm_model(input_state)
+                    action[0] = arm_action[0]
+                    action[3] = arm_action[1]
+                    action[5] = arm_action[2]
+                    action[7] = arm_action[3] - math.pi / 6
+                    action[9] = math.pi * 3 / 4
+
+                    """da sopra"""
+                    # input_state = np.zeros(NUM_INPUTS)
+                    # input_state[0] = y + 0.3
+                    # input_state[1] = 0.5 - 0.2
+                    #
+                    # input_state = torch.Tensor(input_state)
+                    #
+                    # arm_action = arm_model(input_state)
+                    # action[0] = arm_action[0]
+                    # action[3] = arm_action[1]
+                    # action[5] = arm_action[2]
+                    # action[7] = arm_action[3] + math.pi / 6
+                    # action[9] = - math.pi * 3 / 4
+
                 if (prev_state[21] * state[21]) < 0 and ((x < -0.8 or x > 0.8) or (y < -0.1 or y > 1.3)):
                     print("va fuori")
                     action = get_neutral_joint_position()
@@ -135,10 +182,21 @@ def run(cli):
                     y = max(-0.3, min(y, 0.3))
                     x = max(-0.8, min(x, 0.8))
 
-                action[0] = y
+                # action[0] = y
                 action[1] = x
 
-            prev_state = state
+            # input_state = np.zeros(NUM_INPUTS)
+            # input_state[0] = y
+            # input_state[1] = 0.45
+            #
+            # input_state = torch.Tensor(input_state)
+            #
+            # arm_action = arm_model(input_state)
+            # action[0] = arm_action[0]
+            # action[3] = arm_action[1]
+            # action[5] = arm_action[2]
+            # action[7] = arm_action[3] - math.pi/6
+
 
             """
             input_state = np.zeros(input_space_arm)
@@ -159,6 +217,8 @@ def run(cli):
             """
 
         cli.send_joints(action)
+
+        print("Racchetta: x: ", state[11], "y: ", state[12], "z: ", state[13])
 
         prev_state = state
 

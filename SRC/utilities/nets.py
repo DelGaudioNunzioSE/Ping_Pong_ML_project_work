@@ -34,8 +34,12 @@ class Actor(nn.Module):
         self.linear2 = nn.Linear(hidden_size[0], hidden_size[1])  # Second linear layer
         self.ln2 = nn.LayerNorm(hidden_size[1])  # LayerNorm normalization
 
+        # Layer 3
+        self.linear3 = nn.Linear(hidden_size[1], hidden_size[2])  # Second linear layer
+        self.ln3 = nn.LayerNorm(hidden_size[2])  # LayerNorm normalization
+
         # Output Layer
-        self.mu = nn.Linear(hidden_size[1], num_outputs)  # Output layer that produces actions
+        self.mu = nn.Linear(hidden_size[2], num_outputs)  # Output layer that produces actions
 
         # Weight Initialization
         fan_in_uniform_init(self.linear1.weight)  # Initialize weights of the first layer
@@ -43,6 +47,9 @@ class Actor(nn.Module):
 
         fan_in_uniform_init(self.linear2.weight)  # Initialize weights of the second layer
         fan_in_uniform_init(self.linear2.bias)  # Initialize biases of the second layer
+
+        fan_in_uniform_init(self.linear3.weight)  # Initialize weights of the third layer
+        fan_in_uniform_init(self.linear3.bias)  # Initialize biases of the third layer
 
         nn.init.uniform_(self.mu.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)  # Initialize weights of the output layer
         nn.init.uniform_(self.mu.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)  # Initialize biases of the output layer
@@ -58,6 +65,11 @@ class Actor(nn.Module):
         # Layer 2
         x = self.linear2(x)  # Pass through the second linear layer
         x = self.ln2(x)  # Normalize
+        x = F.relu(x)  # ReLU activation function
+
+        # Layer 3
+        x = self.linear3(x)  # Pass through the third linear layer
+        x = self.ln3(x)  # Normalize
         x = F.relu(x)  # ReLU activation function
 
         # Output
@@ -81,8 +93,12 @@ class Critic(nn.Module):
         self.linear2 = nn.Linear(hidden_size[0] + num_outputs, hidden_size[1])  # Second linear layer with state and actions as input
         self.ln2 = nn.LayerNorm(hidden_size[1])  # LayerNorm normalization
 
+        # Layer 3
+        self.linear3 = nn.Linear(hidden_size[1], hidden_size[2])  # Third linear layer
+        self.ln3 = nn.LayerNorm(hidden_size[2])  # LayerNorm normalization
+
         # Output layer (single value)
-        self.V = nn.Linear(hidden_size[1], 1)  # Output layer that produces the value
+        self.V = nn.Linear(hidden_size[2], 1)  # Output layer that produces the value
 
         # Weight Initialization
         fan_in_uniform_init(self.linear1.weight)  # Initialize weights of the first layer
@@ -90,6 +106,9 @@ class Critic(nn.Module):
 
         fan_in_uniform_init(self.linear2.weight)  # Initialize weights of the second layer
         fan_in_uniform_init(self.linear2.bias)  # Initialize biases of the second layer
+
+        fan_in_uniform_init(self.linear3.weight)  # Initialize weights of the third layer
+        fan_in_uniform_init(self.linear3.bias)  # Initialize biases of the third layer
 
         nn.init.uniform_(self.V.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)  # Initialize weights of the output layer
         nn.init.uniform_(self.V.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)  # Initialize biases of the output layer
@@ -107,6 +126,11 @@ class Critic(nn.Module):
         x = torch.cat((x, actions), 0)  # Concatenate the state and actions
         x = self.linear2(x)  # Pass through the second linear layer
         x = self.ln2(x)  # Normalize
+        x = F.relu(x)  # ReLU activation function
+
+        # Layer 3
+        x = self.linear3(x)  # Pass through the third linear layer
+        x = self.ln3(x)  # Normalize
         x = F.relu(x)  # ReLU activation function
 
         # Output
