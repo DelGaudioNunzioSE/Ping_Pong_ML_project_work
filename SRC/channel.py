@@ -492,38 +492,42 @@ class Dispatcher:
             self.close_channel(transient_channel)
         else:
             with self.lock:
-                if key in self.server_channels:
+                if key in self.server_channels: #Set the transient channel as a delegate if a server channel with the same key already exists.
                     self.server_channels[key].set_delegate(transient_channel)
                 else:
-                    sc=ServerChannel(key, self)
+                    sc=ServerChannel(key, self) #Creates a new ServerChannel, sets it as a delegate, and adds it to the server channel dictionary.
                     sc.set_delegate(transient_channel)
                     self.server_channels[key]=sc
                     self.on_new_channel(key, sc)
 
 
+    #Can be overridden by subclasses to handle events when a new channel is registered.
     def on_new_channel(self, key, channel):
         pass
 
+    #Can be overridden by subclasses to handle error events.
     def on_error(self):
         pass
 
     def close_channel(self, channel):
-        if isinstance(channel, TransientChannel):
+        if isinstance(channel, TransientChannel): #Removes the channel from the set of transient channels.
             with self.lock:
                 if channel in self.transient_channels:
                     self.transient_channels.remove(channel)
         else:
             key=channel.get_key()
             with self.lock:
-                if key in self.server_channels:
+                if key in self.server_channels: #Removes the channel from the server channel dictionary.
                     del self.server_channels[key]
-        if not channel.is_closed():
+        if not channel.is_closed(): #Closes the channel if it is not already closed.
             channel.close()
 
+    #Returns a set of active server channel keys.
     def get_keys(self):
         with self.lock:
             return set(self.server_channels.keys())
 
+    #Returns the channel associated with the specified key, if it exists.
     def get_channel(self, key):
         with self.lock:
             return self.server_channels.get(key, None) 
@@ -531,11 +535,12 @@ class Dispatcher:
 
     def shutdown(self, wait=False):
         with self.lock:
-            self.must_finish=True
-        if wait:
+            self.must_finish=True #dispatcher must terminate.
+        if wait: #If wait is True, waits until the dispatcher has finished.
             while not self.is_finished():
                 time.sleep(WAIT_TIME)
 
+    #Returns the termination status of the dispatcher.
     def is_finished(self):
         with self.lock:
             return self.finished
