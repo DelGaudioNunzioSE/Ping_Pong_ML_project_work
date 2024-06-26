@@ -259,28 +259,28 @@ class BaseChannel(AbstractChannel):
     def do_write(self):
         if self.outbound_buffer:
             try:
-                n=self.sock.send(self.outbound_buffer)
+                n=self.sock.send(self.outbound_buffer)#Attempts to send data in the output buffer to the socket
             except IOError:
                 n=-1
             if n<1:
                 self.found_error=True
             else:
-                self.outbound_buffer = self.outbound_buffer[n:]
+                self.outbound_buffer = self.outbound_buffer[n:] #If sending is successful, removes the sent data from the output buffer
                 self.last_write_time=time.time()
 
     #Reads data from the socket into the inbound buffer.
     def do_read(self):
-        data=b''
+        data=b'' #Initialize data as an empty byte string.
         try:
-            data=self.sock.recv(RECV_SIZE)
+            data=self.sock.recv(RECV_SIZE) #Attempts to read data from the socket
         except IOError:
             self.found_error=True
         if data:
             self.inbound_buffer += data
             self.last_read_time=time.time()
-            self.parse_messages()
+            self.parse_messages() #processes messages in the input buffer.
         else:
-            self.found_error=True
+            self.found_error=True #If no data is read (indicating the connection was closed), set self.found_error to True.
 
     #Checks for errors and handles closing the socket if necessary.
     def check_error(self):
@@ -306,25 +306,25 @@ class BaseChannel(AbstractChannel):
     def parse_messages(self):
         while True:
             blen=len(self.inbound_buffer)
-            if blen<MESSAGE_HEADER_SIZE:
+            if blen<MESSAGE_HEADER_SIZE: #If the length is less than the size of the message header, it breaks the loop as there is not enough data for a complete message.
                 break
-            header=self.inbound_buffer[:MESSAGE_HEADER_SIZE]
-            msg_code=struct.unpack('!H', header)[0]
-            msg_length=max(msg_code-MESSAGE_NORMAL, 0)
-            msg_code=msg_code - msg_length
+            header=self.inbound_buffer[:MESSAGE_HEADER_SIZE] #Extracts the message header from the input buffer
+            msg_code=struct.unpack('!H', header)[0] #decode the header and get the message code. It contains a value that includes information about both the message type and its length.
+            msg_length=max(msg_code-MESSAGE_NORMAL, 0) #in case msg_code is less than MESSAGE_NORMAL), max(..., 0) ensures that msg_length is at least 0.
+            msg_code=msg_code - msg_length #After calculating msg_length, the code restores the message code value to identify the exact type of message.
             if msg_code==MESSAGE_NORMAL:
-                if blen<MESSAGE_HEADER_SIZE+msg_length:
+                if blen<MESSAGE_HEADER_SIZE+msg_length: #Checks whether there is enough data in the input buffer for the entire message
                     break
                 message=self.inbound_buffer[MESSAGE_HEADER_SIZE:
-                                            MESSAGE_HEADER_SIZE+msg_length]
+                                            MESSAGE_HEADER_SIZE+msg_length] #Extracts the message from the input buffer
                 self.inbound_buffer=self.inbound_buffer[
-                                            MESSAGE_HEADER_SIZE+msg_length:]
-                self.post_message(message)
+                                            MESSAGE_HEADER_SIZE+msg_length:] #Update the input buffer by removing the extracted message
+                self.post_message(message) #inserts the message into the input queue
             elif msg_code==MESSAGE_PING:
                 self.inbound_buffer=self.inbound_buffer[MESSAGE_HEADER_SIZE:]
             elif msg_code==MESSAGE_REFUSED:
                 self.refused=True
-                self.close()
+                self.close() #closes the channel
                 break
             else:
                 self.found_error=True
@@ -336,13 +336,13 @@ class BaseChannel(AbstractChannel):
 class TransientChannel(BaseChannel):
     def __init__(self, sock, dispatcher):
         self.dispatcher=dispatcher
-        self.received_first=False
-        super().__init__()
+        self.received_first=False #Flag to indicate whether the first message has been received.
+        super().__init__() #Initializes the BaseChannel base class.
         self.set_socket(sock)
 
     def close(self):
         super().close()
-        self.dispatcher.close_channel(self)
+        self.dispatcher.close_channel(self) #Notifies the dispatcher that the channel has been closed, passing the channel reference.
 
     def on_error(self):
         self.close()
@@ -350,49 +350,50 @@ class TransientChannel(BaseChannel):
     def post_message(self, message):
         with self.lock:
             if self.received_first:
-                super().post_message(message)
+                super().post_message(message) #Call the base class's post_message method to insert the message into the input queue.
                 return
             else:
                 self.received_first=True
-        self.dispatcher.register_channel(self, message)
+        self.dispatcher.register_channel(self, message) #Notifies the dispatcher that the channel has been registered, passing the channel reference and the first message.
 
 
 class ClientChannel(BaseChannel):
     def __init__(self, host, port, hello_message):
         self.host=host
         self.port=port
-        self.hello_message=hello_message
+        self.hello_message=hello_message #Set the welcome message that will be sent to the server after connecting.
         super().__init__()
-        self.reconnect()
+        self.reconnect() #Attempts to connect to the server by calling the reconnect method.
 
+    #In case of failure, the channel attempts to reconnect to the server.
     def on_error(self):
         self.reconnect()
 
     def reconnect(self):
-        if self.is_refused():
+        if self.is_refused(): #If the connection was rejected, it exits the method without attempting to reconnect.
             return
         with self.lock:
-            if self.sock:
+            if self.sock: #If a socket already exists, try to close it.
                 try:
                     self.sock.close()
                 finally:
                     self.sock=None
             n=0
-            while not self.sock:
+            while not self.sock: #It keeps trying to create a new socket until it succeeds.
                 try:
-                    self.sock=create_client_socket(self.host, self.port)
-                except IOError:
+                    self.sock=create_client_socket(self.host, self.port) #Attempts to create a new client socket with the specified host and port.
+                except IOError: #If an I/O error occurs while creating the socket, increments n (to a maximum of 50) and waits an increasing amount of time before trying again.
                     n=min(n+1, 50)
                     time.sleep(0.1*n)
             self.inbound_buffer=b''
-            self.outbound_buffer=self.encode_message(self.hello_message)
+            self.outbound_buffer=self.encode_message(self.hello_message) #It encodes the welcome message and places it in the output buffer to be sent to the server.
 
 
 class ServerChannel(AbstractChannel):
     def __init__(self, key, dispatcher):
-        self.key=key
+        self.key=key #Unique key to identify the channel.
         self.dispatcher=dispatcher
-        self.delegate=None
+        self.delegate=None #Delegated channel to perform communication.
         self.lock=threading.RLock()
         self.closed=False
         self.last_time=time.time()
@@ -402,25 +403,28 @@ class ServerChannel(AbstractChannel):
 
     def set_delegate(self, channel):
         with self.lock:
-            if self.delegate:
+            if self.delegate: #Closes the previous delegate if it exists
                 self.delegate.close()
-            self.delegate=channel
+            self.delegate=channel #Set the new delegate channel.
             self.last_time=time.time()
-            if self.closed and self.delegate:
+            if self.closed and self.delegate: #If the channel is marked as closed, it also closes the new delegate and sets it to None.
                 self.delegate.close()
                 self.delegate=None
                 
 
+    #Se esiste un delegato, invia il messaggio tramite il delegato.
     def send(self, message):
         with self.lock:
             if self.delegate:
                 self.delegate.send(message)
 
+    #If a delegate exists, send a rejection message via the delegate.
     def send_refuse(self):
         with self.lock:
             if self.delegate:
                 self.delegate.send_refuse()
 
+    #If a delegate exists, attempts to receive a message through the delegate.
     def receive(self, timeout=None):
         with self.lock:
             if self.delegate:
@@ -428,6 +432,7 @@ class ServerChannel(AbstractChannel):
             else:
                 return None
 
+    #Closes the delegate if it exists and sets it to None.
     def close(self):
         with self.lock:
             if self.delegate:
@@ -436,19 +441,24 @@ class ServerChannel(AbstractChannel):
             self.closed=True
         self.dispatcher.close_channel(self)
 
+    #Returns the value of the closed flag.
     def is_closed(self):
         with self.lock:
             return self.closed
 
+    #If a delegate exists, check if it is rejected
     def is_refused(self):
         with self.lock:
             if self.delegate:
                 return self.delegate.is_refused()
         return False
 
+    #Returns the closed status of the channel
     def is_finished(self):
         return self.is_closed()
 
+    #If a delegate exists, returns the time of the delegate's last activity.
+    #If there is no delegate, returns the time of the last recorded activity.
     def last_activity_time(self):
         with self.lock:
             if self.delegate:
@@ -459,18 +469,19 @@ class ServerChannel(AbstractChannel):
 
 class Dispatcher:
     def __init__(self, port):
-        self.sock=create_server_socket(port)
-        self.must_finish=False
-        self.finished=False
-        self.error=False
+        self.sock=create_server_socket(port) #Creates a server socket that listens on the specified port.
+        self.must_finish=False #Indicates whether the dispatcher should terminate.
+        self.finished=False #Indicates whether the dispatcher has finished.
+        self.error=False #Indicates if an error occurred.
         self.lock=threading.RLock()
         self.transient_channels=set()
-        self.server_channels=dict()
+        self.server_channels=dict() #Dictionary of active server channels, indexed by key.
         t=threading.Thread(target=self.thread_function)
         t.start()
 
 
 
+    #Returns the welcome message as the connection key. This method can be overridden to define different key logic.
     def connection_key(self, hello_message):
         return hello_message
 
