@@ -545,6 +545,7 @@ class Dispatcher:
         with self.lock:
             return self.finished
 
+    #Returns the error status of the dispatcher.
     def is_in_error(self):
         with self.lock:
             return self.error
@@ -554,8 +555,8 @@ class Dispatcher:
             must_finish=self.must_finish
         while not must_finish:
             with self.lock:
-                fd=self.sock.fileno()
-            rready,_,xready=select.select([fd],[],[fd], WAIT_TIME)
+                fd=self.sock.fileno() #Extracts the server socket descriptor file.
+            rready,_,xready=select.select([fd],[],[fd], WAIT_TIME) #Monitors the file descriptor for read availability (rready) and exceptions (xready). WAIT_TIME determines how long to wait for events.
             if xready:
                 with self.lock:
                     self.must_finish=True
@@ -597,12 +598,14 @@ def create_server_socket(port):
 def create_client_socket(host, port):
     return socket.create_connection((host,port))
 
+#Encodes a list of floats into a sequence of bytes.
 def encode_float_list(lst):
     try:
         return b''.join((struct.pack('!f', x) for x in lst))
     except:
         return None
 
+#Decodifica una sequenza di byte in una lista di float.
 def decode_float_list(msg):
     try:
         return list(x[0] for x in struct.iter_unpack('!f', msg))
