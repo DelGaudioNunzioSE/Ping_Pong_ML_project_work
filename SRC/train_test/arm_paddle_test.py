@@ -25,7 +25,7 @@ TAU = 0.01
 HIDDEN_SIZE_PADDLE = (300, 200, 100)
 ACTION_SPACE_SMASH = ActionSpacePaddleSmash()
 ACTION_SPACE_DONT_WAIT = ActionSpacePaddleDontWait()
-NUM_INPUTS_PADDLE = 8
+NUM_INPUTS_PADDLE = 6
 
 smash_agent = DDPG(GAMMA,
                  TAU,
@@ -184,7 +184,7 @@ def run(cli):
                 action[3] = arm_action[1]
                 action[5] = arm_action[2]
                 action[7] = arm_action[3]
-                action[9] = - 2.1 + (z * 1.3)
+                action[9] = - 2.2 + (z * 1.3)
 
             """codice training da qui"""
             paddle_pos = np.array(state[11:14])
@@ -196,11 +196,8 @@ def run(cli):
 
             if distance <= 0.3 and stance_chosen:
 
-                input_state_paddle[0] = state[9]
-                input_state_paddle[1] = state[10]
-
                 for i in range(6):
-                    input_state_paddle[i] = state[i + 11]
+                    input_state_paddle[i] = state[i + 17]
 
                 input_state_paddle = torch.Tensor(input_state_paddle).to(device, dtype=torch.float32)
 
@@ -215,7 +212,7 @@ def run(cli):
 
                     smash_action = smash_agent.calc_action(input_state_paddle)
 
-                    action[9] = - 2.1 + (z * 1.3) + smash_action[0]
+                    action[9] = - 2.2 + (z * 1.3) + smash_action[0]
                     action[10] = smash_action[1]
 
         cli.send_joints(action)

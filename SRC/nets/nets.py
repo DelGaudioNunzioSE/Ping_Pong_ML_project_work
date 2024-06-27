@@ -5,13 +5,21 @@ import torch.nn.functional as F
 
 # Set the device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Constants for the final initialization of weights and biases
 WEIGHTS_FINAL_INIT = 3e-3
 BIAS_FINAL_INIT = 3e-4
 
 
 # Custom initialization function
 def fan_in_uniform_init(tensor, fan_in=None):
-    """Utility function for initializing actor and critic"""
+    """
+    Utility function for initializing weights and biases of the network.
+
+    Parameters:
+    tensor (torch.Tensor): The tensor to be initialized.
+    fan_in (int, optional): The number of input units in the weight tensor.
+    """
     if fan_in is None:
         fan_in = tensor.size(-1)  # Calculate fan_in if not specified
 
@@ -22,6 +30,14 @@ def fan_in_uniform_init(tensor, fan_in=None):
 # Definition of the Actor network
 class Actor(nn.Module):
     def __init__(self, hidden_size, num_inputs, action_space):
+        """
+        Initialize the Actor network.
+
+        Parameters:
+        hidden_size (list): List of integers specifying the number of units in hidden layers.
+        num_inputs (int): Number of input features.
+        action_space (utilities.action_space): Action space specification.
+        """
         super(Actor, self).__init__()
         self.action_space = action_space  # Action space
         num_outputs = action_space.shape[0]  # Number of actions
@@ -55,6 +71,15 @@ class Actor(nn.Module):
         nn.init.uniform_(self.mu.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)  # Initialize biases of the output layer
 
     def forward(self, inputs):
+        """
+        Perform the forward pass through the Actor network.
+
+        Parameters:
+        inputs (torch.Tensor): Input tensor to the network.
+
+        Returns:
+        torch.Tensor: Output tensor after passing through the network.
+        """
         x = inputs.to(device)  # Move the input to the correct device
 
         # Layer 1
@@ -80,6 +105,14 @@ class Actor(nn.Module):
 # Definition of the Critic network
 class Critic(nn.Module):
     def __init__(self, hidden_size, num_inputs, action_space):
+        """
+        Initialize the Critic network.
+
+        Parameters:
+        hidden_size (list): List of integers specifying the number of units in hidden layers.
+        num_inputs (int): Number of input features.
+        action_space (utilities.action_space): Action space specification.
+        """
         super(Critic, self).__init__()
         self.action_space = action_space  # Action space
         num_outputs = action_space.shape[0]  # Number of actions
@@ -114,6 +147,16 @@ class Critic(nn.Module):
         nn.init.uniform_(self.V.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)  # Initialize biases of the output layer
 
     def forward(self, inputs, actions):
+        """
+        Perform the forward pass through the Critic network.
+
+        Parameters:
+        inputs (torch.Tensor): Input tensor (states) to the network.
+        actions (torch.Tensor): Action tensor to the network.
+
+        Returns:
+        torch.Tensor: Output tensor (value) after passing through the network.
+        """
         x = inputs.to(device)  # Move the input to the correct device
         actions = actions.to(device)  # Move the actions to the correct device
 

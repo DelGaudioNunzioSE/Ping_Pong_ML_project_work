@@ -1,9 +1,10 @@
 import sys
 import os
 
+# Get the current and parent directory paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-sys.path.append(parent_dir)
+sys.path.append(parent_dir)  # Add the parent directory to the system path
 
 import torch
 from client import Client, DEFAULT_PORT
@@ -14,31 +15,41 @@ import math
 # Set the device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Initialize the AutoPlayerInterface
 auto = AutoPlayerInterface()
 
+
 def run(cli):
+    """
+    Main loop to control the robotic arm.
 
-    action = get_neutral_joint_position()
+    Args:
+        cli (Client): Client object to interact with the server.
+    """
 
-    prev_state = cli.get_state()
-    play = False
+    action = get_neutral_joint_position()  # Get the neutral joint position
+
+    prev_state = cli.get_state()  # Get the initial state
+    play = False  # Initialize the play flag
 
     while True:
 
         state = cli.get_state()
 
+        # Toggle play when the game start (according the serve)
         if not prev_state[28] and state[28]:
             play = not play
 
+        # Stop playing if the ball is going away (serve done)
         if state[21] > 0:
             play = False
 
         if not play:
             action = get_neutral_joint_position()
-            action[2] += math.pi
+            action[2] += math.pi  # Turn around if not playing
 
         if play:
-            action = auto.update(state)
+            action = auto.update(state)  # Turn again if the game is not playing
 
         if not state[28]:
             action[2] = math.pi

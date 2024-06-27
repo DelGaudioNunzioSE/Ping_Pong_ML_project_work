@@ -26,10 +26,10 @@ class BaseActionSpace:
 
 class ActionSpaceArm(BaseActionSpace):
     JOINT_RANGES = [
-        (-0.3, 0.3),  # Joint 0: Translation y
-        (-np.pi * 1/10, 1.4),  # Joint 3: Pitch primo
-        (-1.6, 1.6),  # Joint 5: Pitch secondo
-        (-np.pi*3/4, np.pi*3/4),  # Joint 7: Pitch terzo
+        (-0.3, 0.3),                # Joint 0: Translation y
+        (-np.pi * 1/10, 1.4),       # Joint 3: Pitch primo
+        (-1.6, 1.6),                # Joint 5: Pitch secondo
+        (-np.pi*3/4, np.pi*3/4),    # Joint 7: Pitch terzo
     ]
 
     def __init__(self):
@@ -38,8 +38,7 @@ class ActionSpaceArm(BaseActionSpace):
 
 class ActionSpacePaddleSmash(BaseActionSpace):
     JOINT_RANGES = [
-        # (0, 1.2),  # Joint 9: Pitch
-        (0, 1.2),           # Joint 9: Pitch
+        (0, 1.2),                                   # Joint 9: Pitch
         ((np.pi/2) - 0.25, (np.pi/2) + 0.25)        # Joint 10: Roll
     ]
 

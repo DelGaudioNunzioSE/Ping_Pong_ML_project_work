@@ -19,12 +19,27 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Soft update function to update the target networks' parameters
 def soft_update(target, source, tau):
+    """
+    Perform soft update of target network parameters with source network parameters.
+
+    Args:
+        target (nn.Module): Target network to update.
+        source (nn.Module): Source network to copy from.
+        tau (float): Interpolation parameter (soft update rate).
+    """
     for target_param, param in zip(target.parameters(), source.parameters()):
         target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
 
 
 # Hard update function to copy parameters from source to target networks
 def hard_update(target, source):
+    """
+    Perform hard update (copy) of target network parameters from source network parameters.
+
+    Args:
+        target (nn.Module): Target network to update.
+        source (nn.Module): Source network to copy from.
+    """
     for target_param, param in zip(target.parameters(), source.parameters()):
         target_param.data.copy_(param.data)
 
@@ -33,19 +48,15 @@ class DDPG(object):
 
     def __init__(self, gamma, tau, hidden_size, num_inputs, action_space, checkpoint_dir=None):
         """
-        Deep Deterministic Policy Gradient
-        Read the detail about it here:
-        https://arxiv.org/abs/1509.02971
+        Deep Deterministic Policy Gradient (DDPG) class for reinforcement learning.
 
-        Arguments:
-            gamma:          Discount factor
-            tau:            Update factor for the actor and the critic
-            hidden_size:    Number of units in the hidden layers of the actor and critic. Must be of length 2.
-            num_inputs:     Size of the input states
-            action_space:   The action space of the used environment. Used to clip the actions and
-                            to distinguish the number of outputs
-            checkpoint_dir: Path as String to the directory to save the networks.
-                            If None then "./saved_models/" will be used
+        Args:
+            gamma (float): Discount factor for future rewards.
+            tau (float): Soft update rate for target networks.
+            hidden_size (list): List of integers representing sizes of hidden layers for networks.
+            num_inputs (int): Size of the input state space.
+            action_space (object): Object defining the action space of the environment.
+            checkpoint_dir (str, optional): Directory path to save model checkpoints. Defaults to None.
         """
 
         self.gamma = gamma
@@ -79,23 +90,21 @@ class DDPG(object):
             # Define the relative path to the directory where you want to save the models
             self.checkpoint_dir = os.path.join(current_dir, checkpoint_dir)
 
-        # if checkpoint_dir is None:
-        #     self.checkpoint_dir = "../saved_models/"
-        # else:
-        #     self.checkpoint_dir = checkpoint_dir
-
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         logger.info('Saving all checkpoints to {}'.format(self.checkpoint_dir))
 
     def calc_action(self, state, action_noise=None):
         """
-        Evaluates the action to perform in a given state
+        Calculate action to take in a given state, optionally add noise for exploration.
 
-        Arguments:
-            state:          State to perform the action on in the env. 
-                            Used to evaluate the action.
-            action_noise:   If not None, the noise to apply on the evaluated action
+        Args:
+            state (torch.Tensor): Input state to evaluate the action on.
+            action_noise (NoiseGenerator, optional): Noise generator object for exploration. Defaults to None.
+
+        Returns:
+            torch.Tensor: Evaluated action for the given state.
         """
+
         x = state.to(device)
 
         # Get the continuous action value to perform in the env
@@ -128,6 +137,7 @@ class DDPG(object):
         Arguments:
             batch:  Batch to perform the training of the parameters
         """
+
         # Get tensors from the batch
         state_batch = torch.cat(batch.state).to(device)
         action_batch = torch.cat(batch.action).to(device)
@@ -143,9 +153,6 @@ class DDPG(object):
         reward_batch = reward_batch.unsqueeze(1)
         done_batch = done_batch.unsqueeze(1)
         expected_values = reward_batch + (1.0 - done_batch) * self.gamma * next_state_action_values
-
-        # TODO: Clipping the expected values here?
-        # expected_value = torch.clamp(expected_value, min_value, max_value)
 
         # Update the critic network
         self.critic_optimizer.zero_grad()
@@ -169,12 +176,12 @@ class DDPG(object):
 
     def save_checkpoint(self, last_timestep, model_name, replay_buffer=None):
         """
-        Saving the networks and all parameters to a file in 'checkpoint_dir'
+        Save networks' parameters and other training parameters to a file in 'checkpoint_dir'.
 
-        Arguments:
-            last_timestep:  Last timestep in training before saving
-            model_name:     Name of the model to save
-            replay_buffer:  Current replay buffer
+        Args:
+            last_timestep (int): Last timestep before saving the checkpoint.
+            model_name (str): Name of the model checkpoint.
+            replay_buffer (ReplayBuffer, optional): Current replay buffer object. Defaults to None.
         """
 
         # Construct the checkpoint file name using the checkpoint directory and the current timestep
@@ -189,7 +196,7 @@ class DDPG(object):
             'actor': self.actor.state_dict(),  # Save the weights and biases of the actor network
             'critic': self.critic.state_dict(),  # Save the weights and biases of the critic network
             'actor_target': self.actor_target.state_dict(),  # Save the weights and biases of the actor target network
-            'critic_target': self.critic_target.state_dict(), # Save the weights and biases of the critic target network
+            'critic_target': self.critic_target.state_dict(),  # Save the weights and biases of the critic target network
             'actor_optimizer': self.actor_optimizer.state_dict(),  # Save the state of the actor optimizer
             'critic_optimizer': self.critic_optimizer.state_dict(),  # Save the state of the critic optimizer
             'replay_buffer': replay_buffer,  # Save the current state of the replay buffer

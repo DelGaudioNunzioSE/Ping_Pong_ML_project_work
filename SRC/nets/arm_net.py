@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim import Adam
 import logging
 import os
 import gc
@@ -16,13 +15,21 @@ logger.addHandler(logging.StreamHandler())
 
 # Set the device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Constants for the final initialization of weights and biases
 WEIGHTS_FINAL_INIT = 3e-3
 BIAS_FINAL_INIT = 3e-4
 
 
 # Custom initialization function
 def fan_in_uniform_init(tensor, fan_in=None):
-    """Utility function for initializing actor and critic"""
+    """
+    Utility function for initializing actor and critic.
+
+    Parameters:
+    tensor (torch.Tensor): The tensor to be initialized.
+    fan_in (int, optional): The number of input units in the weight tensor.
+    """
     if fan_in is None:
         fan_in = tensor.size(-1)  # Calculate fan_in if not specified
 
@@ -30,9 +37,18 @@ def fan_in_uniform_init(tensor, fan_in=None):
     nn.init.uniform_(tensor, -w, w)  # Initialize the tensor uniformly
 
 
-# Definition of the Actor network
+# Definition of the Arm model
 class ArmModel(nn.Module):
     def __init__(self, hidden_size, num_inputs, action_space, checkpoint_dir=None):
+        """
+        Initialize the ArmModel network.
+
+        Parameters:
+        hidden_size (list): List of integers specifying the number of units in hidden layers.
+        num_inputs (int): Number of input features.
+        action_space (utilities.action_space): Action space specification.
+        checkpoint_dir (str, optional): Directory to save checkpoints.
+        """
         super(ArmModel, self).__init__()
         self.action_space = action_space  # Action space
         num_outputs = action_space.shape[0]  # Number of actions
@@ -69,14 +85,20 @@ class ArmModel(nn.Module):
             # Define the relative path to the directory where you want to save the models
             self.checkpoint_dir = os.path.join(current_dir, checkpoint_dir)
 
-        # if checkpoint_dir is None:
-        #     self.checkpoint_dir = "saved_models_arm"
-        # else:
-        #     self.checkpoint_dir = checkpoint_dir
         os.makedirs(self.checkpoint_dir, exist_ok=True)
+
         logger.info('Saving all checkpoints to {}'.format(self.checkpoint_dir))
 
     def forward(self, inputs):
+        """
+        Perform the forward pass through the network.
+
+        Parameters:
+        inputs (torch.Tensor): Input tensor to the network.
+
+        Returns:
+        torch.Tensor: Output tensor after passing through the network.
+        """
         x = inputs.to(device)  # Move the input to the correct device
 
         # Layer 1
@@ -95,6 +117,13 @@ class ArmModel(nn.Module):
         return mu
 
     def save_checkpoint(self, last_epoch, model_name):
+        """
+        Save the model checkpoint.
+
+        Parameters:
+        last_epoch (int): The last completed epoch.
+        model_name (str): The name of the model.
+        """
 
         # Construct the checkpoint file name using the checkpoint directory and the current timestep
         checkpoint_name = self.checkpoint_dir + '/{}_epoch_{}.pth.tar'.format(model_name, last_epoch)
@@ -105,7 +134,7 @@ class ArmModel(nn.Module):
         # Create a dictionary that contains all the elements to be saved
         checkpoint = {
             'last_epoch': last_epoch,  # Save the last epoch
-            'model': self.state_dict()  # Save the weights and biases of the actor network
+            'model': self.state_dict()  # Save the weights and biases of the model network
         }
 
         # Log a message indicating that the model is being saved
@@ -122,7 +151,10 @@ class ArmModel(nn.Module):
 
     def get_path_of_latest_file(self):
         """
-        Returns the latest created file in 'checkpoint_dir'
+        Returns the latest created file in 'checkpoint_dir'.
+
+        Returns:
+        str: The absolute path of the latest file.
         """
         files = [file for file in os.listdir(self.checkpoint_dir) if (file.endswith(".pt") or file.endswith(".tar"))]
         filepaths = [os.path.join(self.checkpoint_dir, file) for file in files]
@@ -130,6 +162,15 @@ class ArmModel(nn.Module):
         return os.path.abspath(last_file)
 
     def load_checkpoint(self, checkpoint_path=None):
+        """
+        Load the model checkpoint.
+
+        Parameters:
+        checkpoint_path (str, optional): The path to the checkpoint file. If not provided, the latest checkpoint will be loaded.
+
+        Returns:
+        int: The starting epoch after loading the checkpoint.
+        """
 
         if checkpoint_path is None:
             checkpoint_path = self.get_path_of_latest_file()

@@ -1,46 +1,50 @@
 import numpy as np
-
 from utilities.trajectory import trajectory
 
 
-def calculate_paddle_reward(prev_state, state, point_state, done):
+def calculate_paddle_reward(prev_state, state, point_state):
+    """
+    Calculate the reward for the paddle based on the current and previous states.
 
-    paddle_pos = np.array(state[11:14])
-    ball_pos = np.array(state[17:20])
+    Args:
+        prev_state (np.array): Previous state of the environment.
+        state (np.array): Current state of the environment.
+        point_state (np.array or None): State representing a point event (e.g., scoring point).
 
-    distance = np.linalg.norm(paddle_pos - ball_pos)
+    Returns:
+        float: Calculated reward for the paddle.
+    """
 
-    if done:
-        if prev_state[21] * state[21] < 0:
-            x, y = trajectory(state, 0)
-            if x is not None and y is not None:
+    # Ball has changed direction in y-axis
+    if prev_state[21] * state[21] < 0:
+        x, y = trajectory(state, 0)  # Calculate trajectory to reach z = 0
+        if x is not None and y is not None:
+            if -0.7 < x < 0.7 and 1.2 < y < 2.4:
 
-                # print("x: ", x, "y: ", y, "vy: ", state[21])
-                if -0.7 < x < 0.7 and 1.2 < y < 2.4:
+                x = abs(x)
 
-                    x = abs(x)
+                reward = (x * 20) + 10  # Calculate reward based on ball's x position
 
-                    reward = (x * 20) + 10
+                if reward < 15:
+                    reward = 15  # Ensure minimum reward
 
-                    if reward < 15:
-                        reward = 15
-
-                else:
-                    reward = -5
             else:
-                reward = 0
-        elif distance > 0.3:
-            reward = -10
+                # Ball is out of opponent field
+                reward = -5
         else:
-            reward = 0
+            reward = 0  # Invalid trajectory calculation
+    # If the episode is ended without catch the ball
     else:
-        reward = 0
+        reward = -10
 
+    # Point state is available (e.g., scoring point conditions)
     if point_state is not None:
 
+        # Reward for scoring a point (if the reward is not already positive)
         if point_state[34] > prev_state[34] and reward <= 0:
             reward = 20
 
+        # Reward for losing a point (if we don't miss the ball)
         if point_state[35] > prev_state[35] and reward != -10:
             reward = -5
 
