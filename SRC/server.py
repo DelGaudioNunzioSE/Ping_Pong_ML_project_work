@@ -27,6 +27,7 @@ STATE_DIMENSION=37
 BALL_SERVICE_HEIGHT=TABLE_HEIGHT+1.0 
 FONT_SIZE=2.0
 
+#This class represents the playing field and manages the physics simulation and the graphical interface.
 class Playfield:
     def __init__(self, game, gui=True):
         self.has_gui=gui
@@ -46,6 +47,7 @@ class Playfield:
         game.set_playfield(self)
         game.init()
 
+    #loads the URDF objects representing the floor, the table, the ball and the two robots. It also sets dynamic properties of objects, such as reversion and lateral friction, and adds debug text to display player names.
     def load_objects(self):
         self.floor = p.loadURDF('plane.urdf')
         self.table = p.loadURDF('table.urdf', [0, 0, 
@@ -194,6 +196,7 @@ class Playfield:
         self.next_state_cb=next_cb
         self.update_state_deadline=self.sim_time+duration
 
+    #initializes the connection with PyBullet, configuring the display and setting the severity and simulation step.
     def init_pybullet(self):
         if not self.has_gui:
             p.connect(p.DIRECT)
