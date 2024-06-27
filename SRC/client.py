@@ -7,13 +7,13 @@ DEFAULT_PORT=9543
 
 class Client:
     def __init__(self, name, host='localhost', port=DEFAULT_PORT):
-        key=name.encode('utf8')
+        key=name.encode('utf8') #UTF-8 encoded version of the client name.
         self.channel= channel.ClientChannel(host, port, key)
 
     def get_state(self, blocking=True):
         timeout=None
-        if blocking:
-            timeout=-1
+        if blocking: #the method will wait until it receives a message (infinite timeout).
+            timeout=-1 #infinite timer
         last_msg=self.channel.receive(timeout)
         if last_msg is None:
             return None
@@ -28,7 +28,7 @@ class Client:
         joints=list(joints)
         if len(joints)!=JOINTS:
             raise ValueError('Unvalid number of elements')
-        msg= channel.encode_float_list(joints)
+        msg= channel.encode_float_list(joints) #Decode the last message into a list of floats.
         if msg is None:
             raise ValueError('Unvalid joints vector')
         self.channel.send(msg)
