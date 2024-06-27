@@ -1,55 +1,5 @@
 import math
 
-# def touch_the_net_rewad(state, target_y=1.2):
-#     bx, by, bz = state[17:20]
-#     vx, vy, vz = state[20:23]
-#     g = 9.81  # Accelerazione gravitazionale
-#
-#     # Calcolare il tempo t quando y(t) = target_y
-#     if vy == 0:
-#         # Se la velocità in y è zero, la palla non raggiungerà mai target_y
-#         return None
-#
-#     t = (target_y - by) / vy
-#
-#     if t < 0:
-#         # Se il tempo è negativo, significa che la pallina non raggiungerà target_y in futuro
-#         return None
-#
-#     # Calcolare la posizione z in questo tempo
-#     z = bz + vz * t - 0.5 * g * t ** 2
-#
-#     if z <= 0.13:
-#         print("z net: ", z)
-#         return True
-#     else:
-#         return False
-#
-#
-# def touch_the_net(state, target_y=1.2):
-#     bx, by, bz = state[17:20]
-#     vx, vy, vz = state[20:23]
-#     g = 9.81  # Accelerazione gravitazionale
-#
-#     # Calcolare il tempo t quando y(t) = target_y
-#     if vy == 0:
-#         # Se la velocità in y è zero, la palla non raggiungerà mai target_y
-#         return False
-#
-#     t = (target_y - by) / vy
-#
-#     if t < 0:
-#         # Se il tempo è negativo, significa che la pallina non raggiungerà target_y in futuro
-#         return False
-#
-#     # Calcolare la posizione z in questo tempo
-#     z = bz + vz * t - 0.5 * g * t ** 2
-#
-#     if z <= 0.13:
-#         return True
-#     else:
-#         return False
-
 
 def max_height_point(state):
     bx, by, bz = state[17:20]

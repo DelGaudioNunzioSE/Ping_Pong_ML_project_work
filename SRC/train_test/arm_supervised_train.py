@@ -1,8 +1,15 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(parent_dir)
+
 from utilities.action_space import ActionSpaceArm
 import torch
 import csv
 from utilities.early_stopping import EarlyStopping
-from utilities.arm_net import ArmModel
+from nets.arm_net import ArmModel
 from utilities.dataset_loader import ArmDataset
 import torch.nn as nn
 from torch.optim import Adam

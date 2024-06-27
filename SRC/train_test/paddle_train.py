@@ -1,15 +1,20 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(parent_dir)
+
 import torch
 from client import Client, DEFAULT_PORT
-import sys
 from utilities.action_space import ActionSpaceArm, ActionSpacePaddleSmash, ActionSpacePaddleDontWait
 from server import get_neutral_joint_position
 import numpy as np
-import math
-from utilities.arm_net import ArmModel
+from nets.arm_net import ArmModel
 from utilities.trajectory import trajectory, max_height_point
 from utilities.replay_memory import ReplayMemory, Transition
 from utilities.noise import OrnsteinUhlenbeckActionNoise
-from utilities.ddpg import DDPG, hard_update
+from nets.ddpg import DDPG, hard_update
 from utilities.reward_calculator import calculate_paddle_reward
 
 # Set the device to GPU if available, otherwise use CPU
@@ -237,7 +242,7 @@ def run(cli):
 
                             dont_wait_action = dont_wait_agent.calc_action(input_state_paddle, ou_noise_dont_wait)
 
-                            action[9] = 1.5 + dont_wait_action[0]
+                            action[9] = 1.5 - dont_wait_action[0]
                             action[10] = dont_wait_action[1]
 
                             cli.send_joints(action)
@@ -301,7 +306,7 @@ def run(cli):
 
                             smash_action = smash_agent.calc_action(input_state_paddle, ou_noise_smash)
 
-                            action[9] = - 2.1 + (z * 1.3) + smash_action[0]
+                            action[9] = (- 2.1) + (z * 1.3) + smash_action[0]
                             action[10] = smash_action[1]
 
                             cli.send_joints(action)

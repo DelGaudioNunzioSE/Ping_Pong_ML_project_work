@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from utilities.nets import Actor, Critic # Import the predefined Actor and Critic networks
+from nets.nets import Actor, Critic
 
 # Configure the logger for the DDPG module
 logger = logging.getLogger('ddpg')
@@ -15,6 +15,7 @@ logger.addHandler(logging.StreamHandler())
 
 # Set the device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 # Soft update function to update the target networks' parameters
 def soft_update(target, source, tau):
@@ -69,9 +70,20 @@ class DDPG(object):
 
         # Set the directory to save the models
         if checkpoint_dir is None:
-            self.checkpoint_dir = "../saved_models/"
+            # Get the directory of the current file
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Define the relative path to the directory where you want to save the models
+            self.checkpoint_dir = os.path.join(current_dir, "saved_models")
         else:
-            self.checkpoint_dir = checkpoint_dir
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Define the relative path to the directory where you want to save the models
+            self.checkpoint_dir = os.path.join(current_dir, checkpoint_dir)
+
+        # if checkpoint_dir is None:
+        #     self.checkpoint_dir = "../saved_models/"
+        # else:
+        #     self.checkpoint_dir = checkpoint_dir
+
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         logger.info('Saving all checkpoints to {}'.format(self.checkpoint_dir))
 

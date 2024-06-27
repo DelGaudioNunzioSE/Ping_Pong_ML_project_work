@@ -60,9 +60,19 @@ class ArmModel(nn.Module):
 
         # Set the directory to save the models
         if checkpoint_dir is None:
-            self.checkpoint_dir = "../saved_models_arm/"
+            # Get the directory of the current file
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Define the relative path to the directory where you want to save the models
+            self.checkpoint_dir = os.path.join(current_dir, "saved_models_arm")
         else:
-            self.checkpoint_dir = checkpoint_dir
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Define the relative path to the directory where you want to save the models
+            self.checkpoint_dir = os.path.join(current_dir, checkpoint_dir)
+
+        # if checkpoint_dir is None:
+        #     self.checkpoint_dir = "saved_models_arm"
+        # else:
+        #     self.checkpoint_dir = checkpoint_dir
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         logger.info('Saving all checkpoints to {}'.format(self.checkpoint_dir))
 

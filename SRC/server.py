@@ -2,7 +2,6 @@ import pybullet as p
 import pybullet_data as pd
 import time
 import math
-import numpy as np
 import channel
 import random
 import sys
@@ -48,15 +47,15 @@ class Playfield:
 
     def load_objects(self):
         self.floor = p.loadURDF('plane.urdf')
-        self.table = p.loadURDF('table.urdf', [0, 0, 
+        self.table = p.loadURDF('Ping_Pong_Machine_learning\\SRC\\table.urdf', [0, 0,
                                                TABLE_HEIGHT-TABLE_THICKNESS])
-        self.ball  = p.loadURDF('ball.urdf', [0, 0.1, 2],
+        self.ball  = p.loadURDF('Ping_Pong_Machine_learning\\SRC\\ball.urdf', [0, 0.1, 2],
                                 flags=p.URDF_USE_INERTIA_FROM_FILE)
         self.robot = [None, None]
-        self.robot[0] = p.loadURDF('robot.urdf',
+        self.robot[0] = p.loadURDF('Ping_Pong_Machine_learning\\SRC\\robot.urdf',
                                  [0, -0.85-0.5*TABLE_LENGTH, 0.8])
         rot=p.getQuaternionFromEuler([0,0,math.pi])
-        self.robot[1] = p.loadURDF('robot2.urdf',
+        self.robot[1] = p.loadURDF('Ping_Pong_Machine_learning\\SRC\\robot2.urdf',
 
                                  [0, +0.85+0.5*TABLE_LENGTH, 0.8], rot)
         self.objects=[self.floor, self.table, self.ball] + self.robot
@@ -713,7 +712,7 @@ class RemotePlayerInterface(PlayerInterface):
         self.channel.close()
 
     def send(self, state):
-        msg=channel.encode_float_list(state)
+        msg= channel.encode_float_list(state)
         self.channel.send(msg)
 
     def receive(self):
@@ -724,7 +723,7 @@ class RemotePlayerInterface(PlayerInterface):
         while msg is not None:
             last_msg=msg
             msg=self.channel.receive()
-        jp=channel.decode_float_list(last_msg)
+        jp= channel.decode_float_list(last_msg)
         if jp is None or len(jp)!=JOINTS:
             print('** Received bad message from', self.name, '**')
         else:

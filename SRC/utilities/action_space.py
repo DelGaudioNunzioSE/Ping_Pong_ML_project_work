@@ -23,20 +23,6 @@ class BaseActionSpace:
         high = torch.tensor(self.high, device=action.device, dtype=torch.float64)
         return low + (high - low) * (action + 1) / 2
 
-    def clamp_action(self, action):
-        """
-        Clamps the action values to be within the joint ranges.
-
-        Arguments:
-            action: A tensor of actions.
-
-        Returns:
-            A tensor of actions clamped to the joint ranges.
-        """
-        low = torch.tensor(self.low, device=action.device)
-        high = torch.tensor(self.high, device=action.device)
-        return torch.clamp(action, low, high)
-
 
 class ActionSpaceArm(BaseActionSpace):
     JOINT_RANGES = [
@@ -52,7 +38,8 @@ class ActionSpaceArm(BaseActionSpace):
 
 class ActionSpacePaddleSmash(BaseActionSpace):
     JOINT_RANGES = [
-        (- np.pi / 2, 0),           # Joint 9: Pitch
+        # (0, 1.2),  # Joint 9: Pitch
+        (0, 1.2),           # Joint 9: Pitch
         ((np.pi/2) - 0.25, (np.pi/2) + 0.25)        # Joint 10: Roll
     ]
 
@@ -62,27 +49,7 @@ class ActionSpacePaddleSmash(BaseActionSpace):
 
 class ActionSpacePaddleDontWait(BaseActionSpace):
     JOINT_RANGES = [
-        ((np.pi * 3 / 4) - 0.5, np.pi * 3 / 4),    # Joint 9: Pitch
-        ((np.pi/2) - 0.15, (np.pi/2) + 0.15)               # Joint 10: Roll
-    ]
-
-    def __init__(self):
-        super().__init__(self.JOINT_RANGES)
-
-
-# class ActionSpacePaddleTable(BaseActionSpace):
-#     JOINT_RANGES = [
-#         ((np.pi * 1/10) - 0.08, np.pi * 1/10),    # Joint 9: Pitch
-#         ((np.pi/2) - 0.15, (np.pi/2) + 0.15)              # Joint 10: Roll
-#     ]
-#
-#     def __init__(self):
-#         super().__init__(self.JOINT_RANGES)
-
-
-class ActionSpacePaddleOutTable(BaseActionSpace):
-    JOINT_RANGES = [
-        ((np.pi * 1 / 2) - 0.5, np.pi * 1 / 2),    # Joint 9: Pitch
+        (0, 0.25),    # Joint 9: Pitch
         ((np.pi/2) - 0.15, (np.pi/2) + 0.15)               # Joint 10: Roll
     ]
 

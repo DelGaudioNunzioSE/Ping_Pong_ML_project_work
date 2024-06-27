@@ -1,6 +1,12 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(parent_dir)
+
 import numpy as np
 from client import Client, JOINTS, DEFAULT_PORT
-import sys
 import math
 from server import get_neutral_joint_position
 from utilities.action_space import ActionSpaceArm
@@ -36,6 +42,7 @@ def run(cli):
             cli.send_joints(action)
             time.sleep(0.2)
             action = np.zeros(JOINTS)
+            cli.send_joints(action)
             time.sleep(0.2)
             action[2] = math.pi
             action[9] = 0
@@ -53,7 +60,7 @@ def run(cli):
             action[7] = scaled_action[3]
 
             cli.send_joints(action)
-            time.sleep(0.1)
+            time.sleep(0.2)
             state = cli.get_state()
 
             line = str(state[0]) + "," + str(state[3]) + "," + str(state[5]) + "," + str(state[7]) + "," + str(state[12]) + "," + str(state[13])
