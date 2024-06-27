@@ -2,7 +2,7 @@ import numpy as np
 from utilities.trajectory import trajectory
 
 
-def calculate_paddle_reward(prev_state, state, done):
+def calculate_paddle_reward(prev_state, state, point_state, done):
 
     paddle_pos = np.array(state[11:14])
     ball_pos = np.array(state[17:20])
@@ -11,16 +11,18 @@ def calculate_paddle_reward(prev_state, state, done):
 
     if done:
         if prev_state[21] * state[21] < 0:
-            x, y = trajectory(state, 0.03)
+            x, y = trajectory(state, 0)
             if x is not None and y is not None:
-                if -0.6 < x < 0.6 and 1.25 < y < 2.4:
+
+                # print("x: ", x, "y: ", y, "vy: ", state[21])
+                if -0.7 < x < 0.7 and 1.2 < y < 2.4:
 
                     x = abs(x)
 
                     reward = (x * 20) + 10
 
                 else:
-                    reward = 0
+                    reward = -5
             else:
                 reward = 0
         elif distance > 0.3:
@@ -29,6 +31,14 @@ def calculate_paddle_reward(prev_state, state, done):
             reward = 0
     else:
         reward = 0
+
+    if point_state is not None:
+
+        if point_state[34] > prev_state[34] and reward <= 0:
+            reward = 20
+
+        if point_state[35] > prev_state[35] and reward != -10:
+            reward = -5
 
     return reward
 

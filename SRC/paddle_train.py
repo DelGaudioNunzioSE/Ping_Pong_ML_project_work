@@ -6,7 +6,7 @@ from server import get_neutral_joint_position
 import numpy as np
 import math
 from utilities.arm_net import ArmModel
-from utilities.trajectory import trajectory, max_height_point, touch_the_net
+from utilities.trajectory import trajectory, max_height_point
 from utilities.replay_memory import ReplayMemory, Transition
 from utilities.noise import OrnsteinUhlenbeckActionNoise
 from utilities.ddpg import DDPG, hard_update
@@ -107,6 +107,9 @@ def run(cli):
 
             state = cli.get_state()
 
+            # if state[22] < 0:
+            #     print("vy: ", state[21])
+
             # Game finished:
             # - Reset 'out';
             if (not prev_state[28] and state[28]) or (state[21] > 0 and prev_state[18] > 1.2):
@@ -140,7 +143,7 @@ def run(cli):
             # - And the ball (cat) is on the table (negative ball-z-position)
             if state[21] < 0 and state[28] and not out and state[19] > 0:
                 # Check if touch the net
-                if (prev_state[21] * state[21]) <= 0 and not touch_the_net(state):
+                if (prev_state[21] * state[21]) <= 0:
                     # Calculate the trajectory to check if the ball go on our side of the table
                     x, y = trajectory(state)
                     if x is not None and y is not None:
@@ -234,7 +237,7 @@ def run(cli):
 
                             dont_wait_action = dont_wait_agent.calc_action(input_state_paddle, ou_noise_dont_wait)
 
-                            action[9] = dont_wait_action[0]
+                            action[9] = 1.5 + dont_wait_action[0]
                             action[10] = dont_wait_action[1]
 
                             cli.send_joints(action)
@@ -247,11 +250,23 @@ def run(cli):
                             ball_pos = np.array(state[17:20])
 
                             distance = np.linalg.norm(paddle_pos - ball_pos)
-
+                            reward_state = state
+                            point_state = None
                             if (prev_state[21] * state[21] < 0) or distance > 0.3 or (prev_state[28] == 1 and state[28] == 0):
-                                done = True
+                                if prev_state[34] == state[34] and prev_state[35] == state[35]:
+                                    # Wait for the game to finish and update the scores
+                                    our_score = state[34]
+                                    opponent_score = state[35]
 
-                            reward = calculate_paddle_reward(prev_state, state, done)
+                                    while True:
+                                        state = cli.get_state()
+                                        if state[34] != our_score or state[35] != opponent_score:
+                                            point_state = state
+                                            break
+
+                                    done = True
+
+                            reward = calculate_paddle_reward(prev_state, reward_state, point_state, done)
 
                             print("Reward dont_wait: ", reward)
 
@@ -286,7 +301,7 @@ def run(cli):
 
                             smash_action = smash_agent.calc_action(input_state_paddle, ou_noise_smash)
 
-                            action[9] = smash_action[0]
+                            action[9] = - 2.1 + (z * 1.3) + smash_action[0]
                             action[10] = smash_action[1]
 
                             cli.send_joints(action)
@@ -300,10 +315,23 @@ def run(cli):
 
                             distance = np.linalg.norm(paddle_pos - ball_pos)
 
+                            reward_state = state
+                            point_state = None
                             if (prev_state[21] * state[21] < 0) or distance > 0.3 or (prev_state[28] == 1 and state[28] == 0):
-                                done = True
+                                if prev_state[34] == state[34] and prev_state[35] == state[35]:
+                                    # Wait for the game to finish and update the scores
+                                    our_score = state[34]
+                                    opponent_score = state[35]
 
-                            reward = calculate_paddle_reward(prev_state, state, done)
+                                    while True:
+                                        state = cli.get_state()
+                                        if state[34] != our_score or state[35] != opponent_score:
+                                            point_state = state
+                                            break
+
+                                    done = True
+
+                            reward = calculate_paddle_reward(prev_state, reward_state, point_state, done)
 
                             print("Reward smash: ", reward)
 

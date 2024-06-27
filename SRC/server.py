@@ -2,6 +2,7 @@ import pybullet as p
 import pybullet_data as pd
 import time
 import math
+import numpy as np
 import channel
 import random
 import sys
@@ -47,17 +48,17 @@ class Playfield:
 
     def load_objects(self):
         self.floor = p.loadURDF('plane.urdf')
-        self.table = p.loadURDF('table.urdf', [0, 0,
-                                               TABLE_HEIGHT - TABLE_THICKNESS])
+        self.table = p.loadURDF('table.urdf', [0, 0, 
+                                               TABLE_HEIGHT-TABLE_THICKNESS])
         self.ball  = p.loadURDF('ball.urdf', [0, 0.1, 2],
                                 flags=p.URDF_USE_INERTIA_FROM_FILE)
         self.robot = [None, None]
         self.robot[0] = p.loadURDF('robot.urdf',
-                                   [0, -0.85-0.5*TABLE_LENGTH, 0.8])
+                                 [0, -0.85-0.5*TABLE_LENGTH, 0.8])
         rot=p.getQuaternionFromEuler([0,0,math.pi])
         self.robot[1] = p.loadURDF('robot2.urdf',
 
-                                   [0, +0.85+0.5*TABLE_LENGTH, 0.8], rot)
+                                 [0, +0.85+0.5*TABLE_LENGTH, 0.8], rot)
         self.objects=[self.floor, self.table, self.ball] + self.robot
         for obj in self.objects:
             for j in range(-1, p.getNumJoints(obj)):
@@ -104,9 +105,13 @@ class Playfield:
         try:
           while not self.finished:
             p.stepSimulation()
-            self.cpoints += p.getContactPoints(self.ball)
+            cpoints = p.getContactPoints(self.ball)
+            if cpoints is not None:
+                self.cpoints += cpoints
             p.stepSimulation()
-            self.cpoints += p.getContactPoints(self.ball)
+            cpoints = p.getContactPoints(self.ball)
+            if cpoints is not None:
+                self.cpoints += cpoints
             self.update()
             self.sim_time += DT
             now=time.time()
@@ -344,7 +349,7 @@ class Game:
         self.robot_touch=False
         self.concerned_player=-1
         self.waiting=True
-        self.waiting_serve=False
+        self.waiting_service=False
         self.serving_player=0
         self.game_started=False
         self.game_time=0.0
@@ -374,7 +379,7 @@ class Game:
         pf.hold_ball([0,0,2.0])
         pf.schedule_start_positions()
         pf.set_central_text('waiting for players')
-        print('=== Waiting for players      ===')
+        print('=== Waiting for players ===')
 
     def update(self):
         pf=self.playfield
@@ -433,11 +438,11 @@ class Game:
         state[20:23]=self.convert_vector(index, pf.ball_velocity)
         opad=self.paddle[1-index]
         state[23:26]=self.convert_coordinates(index, opad[0])
-        oserve=self.waiting_serve and self.serving_player!=index
-        waiting=self.waiting or (self.waiting_serve and not oserve)
+        oserve=self.waiting_service and self.serving_player!=index
+        waiting=self.waiting or (self.waiting_service and not oserve)
         state[26]=int(waiting)
         state[27]=int(oserve)
-        state[28]=int(not self.waiting and not self.waiting_serve)
+        state[28]=int(not self.waiting and not self.waiting_service)
         state[29]=int(pf.ball_position[1]*y_dir > 0.0)
         if self.concerned_player==index:
             state[30]=int(self.field_touch)
@@ -578,10 +583,12 @@ class Game:
                 self.concerned_player=index
                 self.robot_touch=False
                 self.field_touch=True
+                    
 
+        
 
     def on_ready(self):
-        print('=== Ready to start           ===')
+        print('=== Ready to start ===')
         pf=self.playfield
         pf.set_text(0, self.score[0])
         pf.set_text(1, self.score[1])
@@ -590,7 +597,8 @@ class Game:
 
     def on_prepare_service(self):
         index=self.serving_player
-        print('=== Preparing for service:   ', self.player_name[index], '               ===')
+        print('=== Preparing for service:', self.player_name[index],
+              '===')
         pf=self.playfield
         self.player_active=[False, False]
         self.waiting=True
@@ -622,9 +630,9 @@ class Game:
     def on_score_point(self):
         self.waiting=True
         player_index=1-self.concerned_player
+        print('=== Point scored for player: ',
+              self.player_name[player_index], '===')
         self.score[player_index]+=1
-        print('=== Point scored for player: ', self.player_name[player_index],
-              ' - Score', self.score[0], ':', self.score[1], '===')
         pf=self.playfield
         pf.set_text(player_index, self.score[player_index])
         if self.score_limit and \
@@ -705,7 +713,7 @@ class RemotePlayerInterface(PlayerInterface):
         self.channel.close()
 
     def send(self, state):
-        msg= channel.encode_float_list(state)
+        msg=channel.encode_float_list(state)
         self.channel.send(msg)
 
     def receive(self):
@@ -716,7 +724,7 @@ class RemotePlayerInterface(PlayerInterface):
         while msg is not None:
             last_msg=msg
             msg=self.channel.receive()
-        jp= channel.decode_float_list(last_msg)
+        jp=channel.decode_float_list(last_msg)
         if jp is None or len(jp)!=JOINTS:
             print('** Received bad message from', self.name, '**')
         else:

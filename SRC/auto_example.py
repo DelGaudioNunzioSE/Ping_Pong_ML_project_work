@@ -13,18 +13,36 @@ def run(cli):
 
     action = get_neutral_joint_position()
 
+    prev_state = cli.get_state()
+    play = False
+
     while True:
 
         state = cli.get_state()
 
-        action = auto.update(state)
-        action[10] = math.pi/2 + 0.15
+        if not prev_state[28] and state[28]:
+            play = not play
+
+        if state[21] > 0:
+            play = False
+
+        if not play:
+            action = get_neutral_joint_position()
+            action[2] += math.pi
+
+        if play:
+            action = auto.update(state)
+
+        if not state[28]:
+            action[2] = math.pi
 
         cli.send_joints(action)
 
+        prev_state = state
+
 
 def main():
-    name = 'Example Client'
+    name = 'Auto'
     if len(sys.argv) > 1:
         name = sys.argv[1]
 
