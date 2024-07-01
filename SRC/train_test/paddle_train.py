@@ -1,3 +1,21 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3#studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    paddle_train.py
+
+    File containing reinforcement learning for the two types of paddles,
+    with alternating phases of episode recording and training.
+
+"""
+
 import sys
 import os
 
@@ -7,6 +25,7 @@ parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 
 import torch
+import math
 from client import Client, DEFAULT_PORT
 from utilities.action_space import ActionSpaceArm, ActionSpacePaddleSmash, ActionSpacePaddleDontWait
 from server import get_neutral_joint_position
@@ -25,7 +44,7 @@ print("Using: ", device)
 # Hyperparameters
 GAMMA = 0.99
 TAU = 0.01
-HIDDEN_SIZE_PADDLE = (300, 200, 100)
+HIDDEN_SIZE_PADDLE = (200, 100, 50)
 NUM_INPUTS_PADDLE = 6
 TOTAL_EPOCH = 2
 BATCH_S = 25
@@ -44,6 +63,7 @@ smash_agent = DDPG(GAMMA,
                  ACTION_SPACE_SMASH,
                  checkpoint_dir="saved_models_smash"
                  )
+# smash_agent.load_checkpoint()
 
 dont_wait_agent = DDPG(GAMMA,
                  TAU,
@@ -52,10 +72,11 @@ dont_wait_agent = DDPG(GAMMA,
                  ACTION_SPACE_DONT_WAIT,
                  checkpoint_dir="saved_models_dont_wait"
                  )
+# dont_wait_agent.load_checkpoint()
 
 
 # Initialize OU-Noise for exploration
-noise_stddev = 1
+noise_stddev = 0.4
 
 # Initialize OU-Noise for the exploration
 ou_noise_smash = OrnsteinUhlenbeckActionNoise(mu=np.zeros(ACTION_SPACE_SMASH.shape),
@@ -126,11 +147,9 @@ def run(cli):
             # - Take a good position to wait the activation
             if (not prev_state[28] and state[28]) or (state[21] > 0 and prev_state[18] > 1.2):
 
-                # print("START GAME OR CHOICE!")
-
                 x = 0
                 y = 0.8
-                z = 0.35
+                z = 0.5
 
                 input_state_arm[0] = y
                 input_state_arm[1] = z
@@ -143,7 +162,8 @@ def run(cli):
                 action[3] = arm_action[1]
                 action[5] = arm_action[2]
                 action[7] = arm_action[3]
-                action[9] = 0.65
+                action[9] = 1.1
+                action[10] = math.pi/2
 
                 out = False
                 wait_bounce_to_smash = False
@@ -162,7 +182,7 @@ def run(cli):
                     if x is not None and y is not None:
                         # If the ball is going out (Run away)
                         if (x < -0.75 or x > 0.75) or (y < -0.2 or y > 1.2):
-                            print("va fuori")
+                            print("RUN")
                             action = get_neutral_joint_position()
                             out = True
                             if x <= 0:
@@ -171,14 +191,12 @@ def run(cli):
                                 action[1] = -0.8
                         else:
                             x_max, y_max, z_max = max_height_point(state)
-                            # print("z max: ", z_max, "y :", y, "vz:", state[22])
 
                             # if the ball is going in a good place with an high parable,
                             # wait the bounce to smash
                             if state[22] > 0 and y > 0.2 and z_max is not None and z_max >= 0.75:
                                 wait_bounce_to_smash = True
                                 action = get_neutral_joint_position()
-                                # print("sono dentro")
                             else:
                                 wait_bounce_to_smash = False
 
@@ -194,7 +212,7 @@ def run(cli):
                             # cause of the inclination of the paddle during the supervised train of
                             # the arm (0 angle)
                             input_state_arm[0] = y + 0.2
-                            input_state_arm[1] = 0.6
+                            input_state_arm[1] = 0.5
 
                             input_state_arm = torch.Tensor(input_state_arm)
 
@@ -204,29 +222,27 @@ def run(cli):
                             action[3] = arm_action[1]
                             action[5] = arm_action[2]
                             action[7] = arm_action[3]
-                            action[9] = 1.5
-
-                # print("z prima ", prev_state[22], "z dopo", state[22])
+                            action[9] = 1.1
 
                 # if the ball is not going out, and we have decided to smash
                 # and we don't have decided a stance yet and the ball is bounced
                 if not out and wait_bounce_to_smash and prev_state[22] < 0 and state[22] > 0 and prev_state[18] < 1.2 and not stance_chosen:
 
                     # Scan the z to found the higher place to smash
-                    z_smash = 1.4
+                    x_smash, y_smash, z_smash = max_height_point(state)
                     while not stance_chosen:
-                        x_smash, y_smash = trajectory(state, z_smash)
                         if x_smash is not None and y_smash is not None:
-                            if y_smash <= 0.1:
+                            if y_smash <= 0.2:
                                 stance_chosen = True
                                 # We apply an offset on y and z in order to arrive to an optimal position,
                                 # cause of the inclination of the paddle during the supervised train of
                                 # the arm (0 angle)
-                                y = y_smash + 0.25
+                                y = y_smash + 0.15
                                 x = x_smash
                                 z = z_smash - 0.4
                         else:
-                            z_smash -= 0.1
+                            z_smash -= 0.05
+                            x_smash, y_smash = trajectory(state, z_smash)
 
                     print("SMASH!")
 
@@ -243,7 +259,7 @@ def run(cli):
                     action[7] = arm_action[3]
                     # Calculate the z with this function in order to change the angle in function of
                     # the z to obtain the paddle perpendicular to the table
-                    action[9] = (- 2.2) + (z * 1.3)
+                    action[9] = (- 2.3) + ((z**2) * 1.3)
 
                 """Training code"""
                 # Take the paddle and ball position to calculate the Euclidean distance,
@@ -270,7 +286,7 @@ def run(cli):
                         # Calculate the action from the agent
                         dont_wait_action = dont_wait_agent.calc_action(input_state_paddle, ou_noise_dont_wait)
 
-                        action[9] = 1.5 - dont_wait_action[0]
+                        action[9] = 1.1 - dont_wait_action[0]
                         action[10] = dont_wait_action[1]
 
                         # Apply the agent decision
@@ -344,7 +360,7 @@ def run(cli):
                         # Calculate the action from the agent
                         smash_action = smash_agent.calc_action(input_state_paddle, ou_noise_smash)
 
-                        action[9] = (- 2.2) + (z * 1.3) + smash_action[0]
+                        action[9] = (- 2.3) + ((z**2) * 1.3) + smash_action[0]
                         action[10] = smash_action[1]
 
                         # Apply the agent decision
@@ -409,7 +425,6 @@ def run(cli):
 
             cli.send_joints(action)
             prev_state = state
-            #print("ts: ", tr_s, "tdw: ", tr_dw, "tot: ", tr_ot,)
 
         # training start for the smash agent
         if tr_s >= REPLAY_SIZE_SMASH:
@@ -471,7 +486,7 @@ def run(cli):
 
 
 def main():
-    name = 'Example Client'
+    name = 'Paddles Train'
     if len(sys.argv) > 1:
         name = sys.argv[1]
 

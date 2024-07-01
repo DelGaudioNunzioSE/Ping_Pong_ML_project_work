@@ -1,3 +1,22 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3#studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    auto_example.py
+
+    File containing the control logic for the opponent used in
+    reinforcement training, which only plays to return the serve when
+    it is directed towards them, and then disengages from the action.
+
+"""
+
 import sys
 import os
 
@@ -47,12 +66,14 @@ def run(cli):
         if not play:
             action = get_neutral_joint_position()
             action[2] += math.pi  # Turn around if not playing
+            action[1] = 0.8  # Go to the corner
 
         if play:
             action = auto.update(state)  # Turn again if the game is not playing
 
         if not state[28]:
             action[2] = math.pi
+            action[1] = 0
 
         cli.send_joints(action)
 

@@ -1,6 +1,23 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3#studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    arm_supervised_train.py
+
+    File containing the supervised learning for controlling
+    the arm movements.
+
+"""
+
 import sys
 import os
-
 
 # Get the current and parent directory paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +56,7 @@ lossFunction = nn.MSELoss()
 dataset = ArmDataset('dataset_file.csv')
 
 # Open a CSV file to log the training and validation loss
-with open("arm_learning_report_1000_100_50_001.csv", mode='w', newline='') as file:
+with open("arm_learning_report.csv", mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow([
         'epoch', 'training_loss', 'val_loss'

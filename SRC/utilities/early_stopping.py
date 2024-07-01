@@ -1,3 +1,22 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    early_stopping.py
+
+    File containing the class responsible for monitoring the
+    improvement of validation loss to apply early stopping
+    in supervised learning.
+
+"""
+
 
 class EarlyStopping:
     def __init__(self, patience=20, restore_best_weights=True):

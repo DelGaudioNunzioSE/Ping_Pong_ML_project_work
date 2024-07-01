@@ -1,3 +1,22 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3#studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    ddpg.py
+
+    File containing the structure for learning according to the
+    DDPG algorithm, with declarations for the Actor and Critic
+    and their respective weight update phases.
+
+"""
+
 import gc
 import logging
 import os
@@ -59,6 +78,8 @@ class DDPG(object):
             checkpoint_dir (str, optional): Directory path to save model checkpoints. Defaults to None.
         """
 
+        self.positive_noise = True
+
         self.gamma = gamma
         self.tau = tau
         self.action_space = action_space
@@ -116,7 +137,17 @@ class DDPG(object):
         # During training, we add noise for exploration (if specified)
         if action_noise is not None:
             noise = torch.Tensor(action_noise.noise()).to(device)
-            mu += noise
+
+            # Since OrnsteinUhlenbeckActionNoise follows a specific pattern that makes the movements
+            # similar for a certain period of time, we alternately choose to add or subtract the
+            # noise to introduce additional variability.
+            if self.positive_noise:
+                mu += noise
+                self.positive_noise = False
+            else:
+                mu -= noise
+                self.positive_noise = True
+
             # Clamp the output to ensure it remains between -1 and 1
             mu = mu.clamp(-1, 1)
 

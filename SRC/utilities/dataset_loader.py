@@ -1,3 +1,22 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    dataset_loader.py
+
+    File containing the class responsible for loading the dataset and
+    splitting it into training, testing, and validation sets,
+    providing their respective loaders.
+
+"""
+
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split

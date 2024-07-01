@@ -1,3 +1,21 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    replay_memory.py
+
+    File containing the class representing the replay buffer where
+    to record transitions during reinforcement learning.
+
+"""
+
 import random
 from collections import namedtuple
 

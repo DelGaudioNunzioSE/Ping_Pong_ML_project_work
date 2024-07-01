@@ -1,3 +1,23 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    noise.py
+
+    File containing Ornstein-Uhlenbeck Action Noise used as noise
+    during reinforcement learning, which follows a stochastic process
+    that makes movements similar for a certain period of time,
+    adding variability to the model's actions.
+
+"""
+
 import numpy as np
 
 

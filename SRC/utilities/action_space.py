@@ -1,3 +1,22 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    action_space.py
+
+    File containing the action space (output) of all 3 networks,
+    with declaration of upper and lower limits for each action,
+    and denormalization for models using hyperbolic tangent.
+
+"""
+
 import torch
 import numpy as np
 

@@ -1,3 +1,21 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    arm_net.py
+
+    File containing the architecture of the model that moves the arm,
+    trained with supervised learning.
+
+"""
+
 import torch
 import numpy as np
 import torch.nn as nn

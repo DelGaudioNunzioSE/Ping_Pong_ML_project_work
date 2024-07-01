@@ -1,3 +1,21 @@
+"""
+
+    Machine Learning Project Work: Tennis Table Tournament
+    Group 2:
+        Ciaravola Giosuè - g.ciaravola3@studenti.unisa.it
+        Conato Christian - c.conato@studenti.unisa.it
+        Del Gaudio Nunzio - n.delgaudio5@studenti.unisa.it
+        Garofalo Mariachiara - m.garofalo38@studenti.unisa.it
+
+    ---------------------------------------------------------------
+
+    reward_calculator.py
+
+    File containing the reward calculation to use during
+    reinforcement training.
+
+"""
+
 import numpy as np
 from utilities.trajectory import trajectory
 
@@ -30,12 +48,12 @@ def calculate_paddle_reward(prev_state, state, point_state):
 
             else:
                 # Ball is out of opponent field
-                reward = -5
+                reward = -10
         else:
             reward = 0  # Invalid trajectory calculation
     # If the episode is ended without catch the ball
     else:
-        reward = -10
+        reward = -15
 
     # Point state is available (e.g., scoring point conditions)
     if point_state is not None:
@@ -45,7 +63,7 @@ def calculate_paddle_reward(prev_state, state, point_state):
             reward = 20
 
         # Reward for losing a point (if we don't miss the ball)
-        if point_state[35] > prev_state[35] and reward != -10:
-            reward = -5
+        if point_state[35] > prev_state[35] and reward != -15:
+            reward = -10
 
     return reward
