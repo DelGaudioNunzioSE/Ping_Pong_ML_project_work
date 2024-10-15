@@ -5,18 +5,22 @@
 - **Ciaravola Giosuè**
   - Email: g.ciaravola3@studenti.unisa.it
   - Student ID: 0622702177
+  - github: https://github.com/GiosuCiaravola
 
 - **Conato Christian**
   - Email: c.conato@studenti.unisa.it
   - Student ID: 0622702273
+  - github: https://github.com/MrElectric01
 
 - **Del Gaudio Nunzio**
   - Email: n.delgaudio5@studenti.unisa.it
   - Student ID: 0622702277
+  - github: https://github.com/TheNightWatchman
 
 - **Garofalo Mariachiara**
   - Email: m.garofalo38@studenti.unisa.it
   - Student ID: 0622702173
+  - github: https://github.com/Mariachiar
 
 ## How to Run:
 First of all, to run the code, it is necessary to resolve some dependencies on files provided by the commission for the Project Work. Therefore, place the following files inside the project directory (at the same level as the file _insert_here.txt_): _channel.py_, _client.py_, _server.py_, _interface.txt_, _ball.urdf_, _robot.rdf_, _robot2.urdf_, _table.urdf_.\
