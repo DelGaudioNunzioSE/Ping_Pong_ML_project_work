@@ -15,7 +15,7 @@
 - **Del Gaudio Nunzio**
   - Email: n.delgaudio5@studenti.unisa.it
   - Student ID: 0622702277
-  - github: https://github.com/TheNightWatchman
+  - github: https://github.com/Tanatomeno
 
 - **Garofalo Mariachiara**
   - Email: m.garofalo38@studenti.unisa.it
