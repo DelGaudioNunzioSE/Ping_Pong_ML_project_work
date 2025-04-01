@@ -10,7 +10,7 @@
 - **Conato Christian**
   - Email: c.conato@studenti.unisa.it
   - Student ID: 0622702273
-  - github: https://github.com/MrElectric01
+  - github: https://github.com/ChristianConato
 
 - **Del Gaudio Nunzio**
   - Email: n.delgaudio5@studenti.unisa.it
