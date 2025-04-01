@@ -1,26 +1,11 @@
 # Machine Learning Project: Tennis Table
+This project involved developing one or more neural networks to control a robotic arm in a virtual environment, with the goal of winning a ping pong competition against robotic arms operated by other university groups.
 
-## Group 2
-
-- **Ciaravola Giosuè**
-  - Email: g.ciaravola3@studenti.unisa.it
-  - Student ID: 0622702177
-  - github: https://github.com/GiosuCiaravola
-
-- **Conato Christian**
-  - Email: c.conato@studenti.unisa.it
-  - Student ID: 0622702273
-  - github: https://github.com/ChristianConato
-
-- **Del Gaudio Nunzio**
-  - Email: n.delgaudio5@studenti.unisa.it
-  - Student ID: 0622702277
-  - github: https://github.com/Tanatomeno
-
-- **Garofalo Mariachiara**
-  - Email: m.garofalo38@studenti.unisa.it
-  - Student ID: 0622702173
-  - github: https://github.com/Mariachiar
+### Group 2 Members:
+- Ciaravola Giosuè
+- Conato Christian
+- Del Gaudio Nunzio
+- Garofalo Mariachiara
 
 ## How to Run:
 First of all, to run the code, it is necessary to resolve some dependencies on files provided by the commission for the Project Work. Therefore, place the following files inside the project directory (at the same level as the file _insert_here.txt_): _channel.py_, _client.py_, _server.py_, _interface.txt_, _ball.urdf_, _robot.rdf_, _robot2.urdf_, _table.urdf_.\
